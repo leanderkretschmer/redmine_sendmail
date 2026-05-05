@@ -66,7 +66,7 @@ module RedmineSendmail
       )
 
       begin
-        RedmineSendmailMailer.dispatch(
+        delivered = RedmineSendmailMailer.dispatch(
           subject:         subject,
           body:            body,
           recipient_email: recipient_email,
@@ -76,10 +76,11 @@ module RedmineSendmail
           extra_headers:   { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
           smtp_config:     smtp_config
         ).deliver_now
+        Rails.logger.info("[redmine_sendmail] dispatcher: deliver_now OK (message_id=#{delivered&.message_id.inspect}, body_size=#{body.to_s.bytesize})")
       rescue => e
         record.status = 'failed'
         record.error_message = "#{e.class}: #{e.message}"
-        Rails.logger.error("[redmine_sendmail] delivery failed: #{e.class}: #{e.message}")
+        Rails.logger.error("[redmine_sendmail] delivery failed: #{e.class}: #{e.message}\n#{Array(e.backtrace).first(5).join("\n")}")
       end
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'
