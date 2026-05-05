@@ -2,6 +2,15 @@ module RedmineSendmail
   module SmtpResolver
     module_function
 
+    def mail_handler_account_email
+      mh = (Setting.plugin_redmine_mail_handler rescue nil)
+      return nil if mh.blank?
+      use_imap = mh['smtp_same_as_imap'].to_s == '1' && mh['smtp_host'].to_s.strip.empty?
+      candidate = use_imap ? mh['imap_username'] : mh['smtp_username']
+      candidate = candidate.to_s.strip
+      candidate.match?(/\A[^@\s]+@[^@\s]+\z/) ? candidate : nil
+    end
+
     def resolve(settings = nil)
       settings ||= Setting.plugin_redmine_sendmail || {}
       if settings['smtp_use_mail_handler'].to_s == '1'

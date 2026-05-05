@@ -78,7 +78,7 @@ module RedmineSendmail
       body    = TemplateRenderer.render(body_template, vars)
 
       from_email = settings['from_email'].presence
-      reply_to   = (settings['reply_to_user'].to_s == '1' && user.mail.present?) ? user.mail : nil
+      reply_to   = resolve_reply_to(settings)
 
       record = RedmineSendmailDispatch.new(
         issue_id:        issue.id,
@@ -93,7 +93,7 @@ module RedmineSendmail
         status:          'sent'
       )
 
-      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id}, contact ##{contact.id})")
+      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id}, contact ##{contact.id}, from=#{from_email.inspect}, reply_to=#{reply_to.inspect})")
       begin
         delivered = RedmineSendmailMailer.dispatch(
           subject:         subject,
@@ -114,6 +114,12 @@ module RedmineSendmail
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'
       record
+    end
+
+    def resolve_reply_to(settings)
+      explicit = settings['reply_to_email'].to_s.strip
+      return explicit if explicit.present?
+      SmtpResolver.mail_handler_account_email
     end
 
     def lookup_contact(contact_id, project, user)

@@ -32,11 +32,12 @@
   </p>
 
   <p>
-    <label for="settings_reply_to_user"><%= l(:label_sendmail_reply_to_user) %></label>
-    <%= hidden_field_tag 'settings[reply_to_user]', '0' %>
-    <%= check_box_tag 'settings[reply_to_user]', '1',
-                      @settings['reply_to_user'].to_s == '1',
-                      id: 'settings_reply_to_user' %>
+    <label for="settings_reply_to_email"><%= l(:label_sendmail_reply_to_email) %></label>
+    <%= text_field_tag 'settings[reply_to_email]',
+                       @settings['reply_to_email'],
+                       size: 40, id: 'settings_reply_to_email',
+                       placeholder: 'support@example.com' %>
+    <em class="info"><%= l(:label_sendmail_reply_to_email_hint) %></em>
   </p>
 
   <p>

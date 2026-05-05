@@ -9,7 +9,8 @@ en:
   label_sendmail_body_template: "Body template / footer"
   label_sendmail_from_email: "From address"
   label_sendmail_from_email_hint: "Optional. If empty, the default Redmine sender address is used."
-  label_sendmail_reply_to_user: "Reply-To = current user"
+  label_sendmail_reply_to_email: "Reply-To address"
+  label_sendmail_reply_to_email_hint: "If empty, the SMTP account from the redmine_mail_handler plugin is used (when available). The logged-in Redmine user is never used as Reply-To."
   label_sendmail_log_dispatches: "Log dispatches"
   label_sendmail_placeholders: "Available placeholders"
 

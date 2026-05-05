@@ -9,7 +9,8 @@ de:
   label_sendmail_body_template: "Text-Vorlage / Footer"
   label_sendmail_from_email: "Absender-Adresse"
   label_sendmail_from_email_hint: "Optional. Wenn leer, wird die in Redmine konfigurierte Standard-Absenderadresse verwendet."
-  label_sendmail_reply_to_user: "Antwort-an = angemeldeter Benutzer"
+  label_sendmail_reply_to_email: "Antwort-An (Reply-To)"
+  label_sendmail_reply_to_email_hint: "Wenn leer, wird das Mailkonto aus den SMTP-Einstellungen des redmine_mail_handler verwendet (sofern vorhanden). Der angemeldete Redmine-Benutzer wird nie als Reply-To gesetzt."
   label_sendmail_log_dispatches: "Versand protokollieren"
   label_sendmail_placeholders: "Verfügbare Platzhalter"
 
