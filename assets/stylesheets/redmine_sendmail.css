@@ -27,6 +27,51 @@
   color: #888;
 }
 
+.redmine-sendmail-recipients {
+  display: inline-block;
+  vertical-align: top;
+  max-height: 11em;
+  min-width: 22em;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+  background: #fff;
+  border-radius: 3px;
+  padding: 0.3em 0.5em;
+}
+
+.redmine-sendmail-recipient-item {
+  display: block;
+  padding: 0.15em 0;
+  font-weight: normal;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.redmine-sendmail-recipient-item input[type="checkbox"] {
+  margin-right: 0.4em;
+  vertical-align: middle;
+}
+
+.redmine-sendmail-recipient-item:hover {
+  background: #f0f6ff;
+}
+
+.redmine-sendmail-recipient-name {
+  font-weight: bold;
+}
+
+.redmine-sendmail-recipient-email {
+  color: #555;
+  margin-left: 0.4em;
+  font-size: 0.9em;
+}
+
+.redmine-sendmail-hint-static {
+  display: block;
+  margin-top: 0.3em;
+  margin-left: 9em;
+}
+
 .redmine-sendmail-status.sent {
   color: #1a7f37;
   font-weight: bold;

@@ -6,31 +6,61 @@ module RedmineSendmail
     module_function
 
     def dispatch_for_journal(journal:, params:)
-      return nil if params.blank?
-      contact_id = params[:contact_id].to_s.strip
-      recipient_email = params[:recipient_email].to_s.strip
-      custom_subject  = params[:subject].to_s.strip
+      return [] if params.blank?
+      return [] unless journal && journal.notes.present?
 
-      return nil if contact_id.blank? && recipient_email.blank?
-      return nil unless journal && journal.notes.present?
-
-      issue   = journal.journalized
-      project = issue.project
-      user    = journal.user || User.current
-
-      contact = lookup_contact(contact_id, project, user)
-      if contact && recipient_email.blank?
-        recipient_email = contact.primary_email.to_s.strip
+      contact_ids = extract_contact_ids(params)
+      if contact_ids.empty?
+        Rails.logger.info("[redmine_sendmail] dispatcher: no contacts selected for journal ##{journal.id}")
+        return []
       end
-      recipient_name = contact ? contact.name : nil
 
-      if recipient_email.blank?
-        Rails.logger.warn("[redmine_sendmail] dispatcher: no recipient email (journal ##{journal.id}, contact_id=#{contact_id.inspect})")
+      custom_subject = params[:subject].to_s.strip
+      issue          = journal.journalized
+      project        = issue.project
+      user           = journal.user || User.current
+
+      settings    = Setting.plugin_redmine_sendmail || {}
+      smtp_config = SmtpResolver.resolve(settings)
+      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s)")
+
+      contact_ids.map do |cid|
+        dispatch_one(
+          issue:          issue,
+          project:        project,
+          journal:        journal,
+          user:           user,
+          contact_id:     cid,
+          custom_subject: custom_subject,
+          settings:       settings,
+          smtp_config:    smtp_config
+        )
+      end.compact
+    end
+
+    def extract_contact_ids(params)
+      ids = params[:contact_ids]
+      ids = ids.values if ids.is_a?(Hash)
+      ids = Array(ids).flatten
+      if ids.empty? && params[:contact_id].to_s.strip.present?
+        ids = [params[:contact_id]]
+      end
+      ids.map { |v| v.to_s.strip }.reject(&:blank?).uniq
+    end
+
+    def dispatch_one(issue:, project:, journal:, user:, contact_id:, custom_subject:, settings:, smtp_config:)
+      contact = lookup_contact(contact_id, project, user)
+      unless contact
+        Rails.logger.warn("[redmine_sendmail] contact ##{contact_id} not found / not visible — skipping")
         return nil
       end
-      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id})")
+      recipient_email = contact.primary_email.to_s.strip
+      if recipient_email.blank?
+        Rails.logger.warn("[redmine_sendmail] contact ##{contact_id} (#{contact.name}) has no e-mail — skipping")
+        return nil
+      end
+      recipient_name = contact.name
 
-      settings = Setting.plugin_redmine_sendmail || {}
       vars = TemplateRenderer.build_vars(
         user:            user,
         issue:           issue,
@@ -47,17 +77,15 @@ module RedmineSendmail
       subject = "[##{issue.id}]" if subject.blank?
       body    = TemplateRenderer.render(body_template, vars)
 
-      from_email  = settings['from_email'].presence
-      reply_to    = (settings['reply_to_user'].to_s == '1' && user.mail.present?) ? user.mail : nil
-      smtp_config = SmtpResolver.resolve(settings)
-      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}")
+      from_email = settings['from_email'].presence
+      reply_to   = (settings['reply_to_user'].to_s == '1' && user.mail.present?) ? user.mail : nil
 
       record = RedmineSendmailDispatch.new(
         issue_id:        issue.id,
         journal_id:      journal.id,
         project_id:      project.id,
         user_id:         user.id,
-        contact_id:      contact&.id,
+        contact_id:      contact.id,
         recipient_email: recipient_email,
         recipient_name:  recipient_name,
         subject:         subject.first(998),
@@ -65,6 +93,7 @@ module RedmineSendmail
         status:          'sent'
       )
 
+      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id}, contact ##{contact.id})")
       begin
         delivered = RedmineSendmailMailer.dispatch(
           subject:         subject,
@@ -80,7 +109,7 @@ module RedmineSendmail
       rescue => e
         record.status = 'failed'
         record.error_message = "#{e.class}: #{e.message}"
-        Rails.logger.error("[redmine_sendmail] delivery failed: #{e.class}: #{e.message}\n#{Array(e.backtrace).first(5).join("\n")}")
+        Rails.logger.error("[redmine_sendmail] delivery failed for #{recipient_email}: #{e.class}: #{e.message}\n#{Array(e.backtrace).first(5).join("\n")}")
       end
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'

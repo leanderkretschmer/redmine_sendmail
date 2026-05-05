@@ -15,6 +15,8 @@ de:
 
   label_sendmail_send_to_contact: "E-Mail an Kontakt senden"
   label_sendmail_recipient: "Empfänger"
+  label_sendmail_recipients: "Empfänger"
+  label_sendmail_recipients_hint: "Mehrere Empfänger möglich. Jeder Kontakt erhält eine eigene Mail."
   label_sendmail_no_recipient: "— Kein Versand —"
   label_sendmail_no_contacts_in_project: "Keine Kontakte mit E-Mail-Adresse in diesem Projekt vorhanden."
   label_sendmail_subject: "Betreff"

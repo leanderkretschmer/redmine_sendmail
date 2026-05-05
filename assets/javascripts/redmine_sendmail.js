@@ -4,17 +4,24 @@
   function initRecipientForm() {
     var form = document.querySelector('[data-sendmail-form]');
     if (!form) { return; }
-    var select = form.querySelector('[data-sendmail-recipient]');
+    var checkboxes = form.querySelectorAll('[data-sendmail-recipient]');
     var subjectRow = form.querySelector('[data-sendmail-subject-row]');
     var subjectInput = form.querySelector('[data-sendmail-subject]');
     var hint = form.querySelector('[data-sendmail-hint]');
-    if (!select || !subjectRow || !subjectInput) { return; }
+    if (!checkboxes.length || !subjectRow || !subjectInput) { return; }
+
+    function anyChecked() {
+      for (var i = 0; i < checkboxes.length; i++) {
+        if (checkboxes[i].checked) { return true; }
+      }
+      return false;
+    }
 
     function update() {
-      var hasRecipient = select.value && select.value.length > 0;
-      subjectRow.style.display = hasRecipient ? '' : 'none';
-      if (hint) { hint.style.display = hasRecipient ? '' : 'none'; }
-      if (hasRecipient) {
+      var visible = anyChecked();
+      subjectRow.style.display = visible ? '' : 'none';
+      if (hint) { hint.style.display = visible ? '' : 'none'; }
+      if (visible) {
         subjectInput.required = true;
       } else {
         subjectInput.required = false;
@@ -22,7 +29,9 @@
       }
     }
 
-    select.addEventListener('change', update);
+    for (var i = 0; i < checkboxes.length; i++) {
+      checkboxes[i].addEventListener('change', update);
+    }
     update();
   }
 
@@ -48,6 +57,6 @@
   }
 
   if (window.jQuery) {
-    window.jQuery(document).on('ajax:complete', highlightSentJournals);
+    window.jQuery(document).on('ajax:complete', init);
   }
 })();

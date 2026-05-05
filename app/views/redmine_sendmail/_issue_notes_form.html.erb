@@ -3,26 +3,28 @@
     <legend><%= l(:label_sendmail_send_to_contact) %></legend>
     <div class="redmine-sendmail-fields">
       <p>
-        <label for="sendmail_contact_id"><%= l(:label_sendmail_recipient) %></label>
+        <label><%= l(:label_sendmail_recipients) %></label>
         <% if contacts.any? %>
-          <%= select_tag 'sendmail[contact_id]',
-                         options_for_select(
-                           [[l(:label_sendmail_no_recipient), '']] +
-                           contacts.map { |c|
-                             [
-                               "#{c.name} <#{c.primary_email}>",
-                               c.id,
-                               { 'data-email' => c.primary_email, 'data-name' => c.name }
-                             ]
-                           }
-                         ),
-                         id: 'sendmail_contact_id',
-                         data: { 'sendmail-recipient' => true } %>
+          <div class="redmine-sendmail-recipients" data-sendmail-recipients>
+            <% contacts.each do |c| %>
+              <label class="redmine-sendmail-recipient-item">
+                <%= check_box_tag 'sendmail[contact_ids][]',
+                                  c.id,
+                                  false,
+                                  id: "sendmail_contact_#{c.id}",
+                                  data: { 'sendmail-recipient' => true,
+                                          'email' => c.primary_email,
+                                          'name'  => c.name } %>
+                <span class="redmine-sendmail-recipient-name"><%= h(c.name) %></span>
+                <span class="redmine-sendmail-recipient-email">&lt;<%= h(c.primary_email) %>&gt;</span>
+              </label>
+            <% end %>
+          </div>
+          <em class="redmine-sendmail-hint-static info"><%= l(:label_sendmail_recipients_hint) %></em>
         <% else %>
           <em class="redmine-sendmail-empty">
             <%= l(:label_sendmail_no_contacts_in_project) %>
           </em>
-          <%= hidden_field_tag 'sendmail[contact_id]', '' %>
         <% end %>
       </p>
       <p class="redmine-sendmail-subject" data-sendmail-subject-row style="display:none;">

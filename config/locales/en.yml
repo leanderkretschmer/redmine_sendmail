@@ -15,6 +15,8 @@ en:
 
   label_sendmail_send_to_contact: "Send comment as e-mail"
   label_sendmail_recipient: "Recipient"
+  label_sendmail_recipients: "Recipients"
+  label_sendmail_recipients_hint: "Pick one or more contacts. Each recipient receives a personalised mail."
   label_sendmail_no_recipient: "— No mail —"
   label_sendmail_no_contacts_in_project: "No contacts with e-mail addresses in this project."
   label_sendmail_subject: "Subject"
