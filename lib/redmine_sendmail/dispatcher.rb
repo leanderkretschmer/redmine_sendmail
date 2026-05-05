@@ -24,9 +24,10 @@ module RedmineSendmail
       recipient_name = contact ? contact.name : nil
 
       if recipient_email.blank?
-        Rails.logger.warn("[redmine_sendmail] Skipping dispatch for journal #{journal.id}: no recipient email")
+        Rails.logger.warn("[redmine_sendmail] dispatcher: no recipient email (journal ##{journal.id}, contact_id=#{contact_id.inspect})")
         return nil
       end
+      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id})")
 
       settings = Setting.plugin_redmine_sendmail || {}
       vars = TemplateRenderer.build_vars(

@@ -15,12 +15,22 @@ module RedmineSendmail
     def view_issues_edit_notes_bottom(context = {})
       issue = context[:issue]
       project = context[:project] || issue&.project
-      return '' unless project && issue
-      return '' unless project.module_enabled?(:sendmail)
-      return '' unless User.current.allowed_to?(:send_sendmail, project)
+      unless project && issue
+        Rails.logger.info("[redmine_sendmail] view_hook: skip (no issue/project)")
+        return ''
+      end
+      unless project.module_enabled?(:sendmail)
+        Rails.logger.info("[redmine_sendmail] view_hook: skip (module 'sendmail' not enabled on project ##{project.id} #{project.identifier})")
+        return ''
+      end
+      unless User.current.allowed_to?(:send_sendmail, project)
+        Rails.logger.info("[redmine_sendmail] view_hook: skip (user #{User.current.login} lacks :send_sendmail on project ##{project.id})")
+        return ''
+      end
 
       controller = context[:controller]
       contacts   = load_contacts(project, User.current)
+      Rails.logger.info("[redmine_sendmail] view_hook: rendering form for issue ##{issue.id}, #{contacts.size} contact(s)")
       controller.send(:render_to_string,
                       partial: 'redmine_sendmail/issue_notes_form',
                       locals:  { issue: issue, project: project, contacts: contacts })
