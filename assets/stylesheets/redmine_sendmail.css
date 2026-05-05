@@ -55,3 +55,34 @@
   padding: 0 0.2em;
   border-radius: 3px;
 }
+
+/* Journal marker: comments that were sent as e-mail */
+.journal.redmine-sendmail-sent {
+  background-color: #dbeafe;
+  border-left: 3px solid #3b82f6;
+  padding-left: 0.6em;
+  border-radius: 3px;
+}
+
+.redmine-sendmail-sent-marker {
+  margin-top: 0.6em;
+  padding: 0.3em 0.5em;
+  font-size: 0.9em;
+  color: #1e3a8a;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 3px;
+}
+
+.redmine-sendmail-sent-icon {
+  margin-right: 0.3em;
+}
+
+.redmine-sendmail-sent-label {
+  font-weight: bold;
+  margin-right: 0.2em;
+}
+
+.redmine-sendmail-recipient.failed {
+  color: #b91c1c;
+  text-decoration: line-through;
+}

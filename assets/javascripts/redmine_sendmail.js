@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  function init() {
+  function initRecipientForm() {
     var form = document.querySelector('[data-sendmail-form]');
     if (!form) { return; }
     var select = form.querySelector('[data-sendmail-recipient]');
@@ -26,9 +26,28 @@
     update();
   }
 
+  function highlightSentJournals() {
+    var markers = document.querySelectorAll('[data-sendmail-marker]');
+    for (var i = 0; i < markers.length; i++) {
+      var journal = markers[i].closest ? markers[i].closest('.journal') : null;
+      if (journal && !journal.classList.contains('redmine-sendmail-sent')) {
+        journal.classList.add('redmine-sendmail-sent');
+      }
+    }
+  }
+
+  function init() {
+    initRecipientForm();
+    highlightSentJournals();
+  }
+
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
+  }
+
+  if (window.jQuery) {
+    window.jQuery(document).on('ajax:complete', highlightSentJournals);
   }
 })();

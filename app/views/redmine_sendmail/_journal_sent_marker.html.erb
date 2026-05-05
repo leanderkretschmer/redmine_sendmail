@@ -1,0 +1,11 @@
+<div class="redmine-sendmail-sent-marker" data-sendmail-marker>
+  <span class="redmine-sendmail-sent-icon">&#9993;</span>
+  <span class="redmine-sendmail-sent-label"><%= l(:label_sendmail_sent_to) %>:</span>
+  <%= safe_join(
+        dispatches.map { |d|
+          name = d.recipient_name.presence || d.recipient_email
+          label = "#{name} <#{d.recipient_email}>"
+          klass = d.sent? ? 'redmine-sendmail-recipient sent' : 'redmine-sendmail-recipient failed'
+          content_tag(:span, label, class: klass, title: format_time(d.created_at))
+        }, ', '.html_safe) %>
+</div>

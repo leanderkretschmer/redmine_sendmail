@@ -36,6 +36,17 @@ module RedmineSendmail
                       locals:  { issue: issue, project: project, contacts: contacts })
     end
 
+    def view_issues_history_journal_bottom(context = {})
+      journal = context[:journal]
+      return '' unless journal
+      dispatches = RedmineSendmailDispatch.where(journal_id: journal.id).order(:created_at).to_a
+      return '' if dispatches.empty?
+      controller = context[:controller]
+      controller.send(:render_to_string,
+                      partial: 'redmine_sendmail/journal_sent_marker',
+                      locals:  { dispatches: dispatches })
+    end
+
     private
 
     def load_contacts(project, user)

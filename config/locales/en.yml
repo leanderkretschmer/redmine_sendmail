@@ -24,6 +24,7 @@ en:
   label_sendmail_no_dispatches: "No mails have been sent from this project yet."
   label_sendmail_status_sent: "Sent"
   label_sendmail_status_failed: "Failed"
+  label_sendmail_sent_to: "Sent by e-mail to"
 
   help_sendmail_user_name: "Name of the currently logged-in user (use this for the signature)"
   help_sendmail_ticket_id: "Ticket id of the issue from which the mail is sent"

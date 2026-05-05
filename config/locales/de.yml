@@ -24,6 +24,7 @@ de:
   label_sendmail_no_dispatches: "Bisher wurden keine E-Mails aus diesem Projekt versendet."
   label_sendmail_status_sent: "Versendet"
   label_sendmail_status_failed: "Fehlgeschlagen"
+  label_sendmail_sent_to: "Per E-Mail versendet an"
 
   help_sendmail_user_name: "Name des angemeldeten Benutzers (z. B. für die Signatur)"
   help_sendmail_ticket_id: "Ticket-Nummer, aus dem die E-Mail gesendet wird"
