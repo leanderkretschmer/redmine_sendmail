@@ -1,0 +1,41 @@
+<div id="redmine-sendmail-form" class="redmine-sendmail-form" data-sendmail-form>
+  <fieldset class="collapsible">
+    <legend><%= l(:label_sendmail_send_to_contact) %></legend>
+    <div class="redmine-sendmail-fields">
+      <p>
+        <label for="sendmail_contact_id"><%= l(:label_sendmail_recipient) %></label>
+        <% if contacts.any? %>
+          <%= select_tag 'sendmail[contact_id]',
+                         options_for_select(
+                           [[l(:label_sendmail_no_recipient), '']] +
+                           contacts.map { |c|
+                             [
+                               "#{c.name} <#{c.primary_email}>",
+                               c.id,
+                               { 'data-email' => c.primary_email, 'data-name' => c.name }
+                             ]
+                           }
+                         ),
+                         id: 'sendmail_contact_id',
+                         data: { 'sendmail-recipient' => true } %>
+        <% else %>
+          <em class="redmine-sendmail-empty">
+            <%= l(:label_sendmail_no_contacts_in_project) %>
+          </em>
+          <%= hidden_field_tag 'sendmail[contact_id]', '' %>
+        <% end %>
+      </p>
+      <p class="redmine-sendmail-subject" data-sendmail-subject-row style="display:none;">
+        <label for="sendmail_subject"><%= l(:label_sendmail_subject) %></label>
+        <%= text_field_tag 'sendmail[subject]', '',
+                           id: 'sendmail_subject',
+                           size: 60,
+                           placeholder: l(:label_sendmail_subject_placeholder, ticket_id: issue.id),
+                           data: { 'sendmail-subject' => true, 'ticket-id' => issue.id } %>
+      </p>
+      <p class="redmine-sendmail-hint" data-sendmail-hint style="display:none;">
+        <em><%= l(:label_sendmail_will_send_hint) %></em>
+      </p>
+    </div>
+  </fieldset>
+</div>

@@ -1,0 +1,65 @@
+<%
+  @settings = Setting.plugin_redmine_sendmail || {}
+%>
+
+<div class="box tabular settings redmine-sendmail-settings">
+  <h3><%= l(:label_sendmail_settings_title) %></h3>
+
+  <p>
+    <label for="settings_subject_template"><%= l(:label_sendmail_subject_template) %></label>
+    <%= text_field_tag 'settings[subject_template]',
+                       @settings['subject_template'],
+                       size: 60,
+                       id: 'settings_subject_template' %>
+    <em class="info"><%= l(:label_sendmail_subject_template_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_body_template"><%= l(:label_sendmail_body_template) %></label>
+    <%= text_area_tag 'settings[body_template]',
+                      @settings['body_template'],
+                      rows: 14, cols: 80,
+                      id: 'settings_body_template' %>
+  </p>
+
+  <p>
+    <label for="settings_from_email"><%= l(:label_sendmail_from_email) %></label>
+    <%= text_field_tag 'settings[from_email]',
+                       @settings['from_email'],
+                       size: 40, id: 'settings_from_email',
+                       placeholder: 'no-reply@example.com' %>
+    <em class="info"><%= l(:label_sendmail_from_email_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_reply_to_user"><%= l(:label_sendmail_reply_to_user) %></label>
+    <%= hidden_field_tag 'settings[reply_to_user]', '0' %>
+    <%= check_box_tag 'settings[reply_to_user]', '1',
+                      @settings['reply_to_user'].to_s == '1',
+                      id: 'settings_reply_to_user' %>
+  </p>
+
+  <p>
+    <label for="settings_log_dispatches"><%= l(:label_sendmail_log_dispatches) %></label>
+    <%= hidden_field_tag 'settings[log_dispatches]', '0' %>
+    <%= check_box_tag 'settings[log_dispatches]', '1',
+                      @settings['log_dispatches'].to_s == '1',
+                      id: 'settings_log_dispatches' %>
+  </p>
+</div>
+
+<div class="box redmine-sendmail-help">
+  <h3><%= l(:label_sendmail_placeholders) %></h3>
+  <ul>
+    <li><code>{user_name}</code> &mdash; <%= l(:help_sendmail_user_name) %></li>
+    <li><code>{user_email}</code></li>
+    <li><code>{user_login}</code>, <code>{user_firstname}</code>, <code>{user_lastname}</code></li>
+    <li><code>{ticket_id}</code> &mdash; <%= l(:help_sendmail_ticket_id) %></li>
+    <li><code>{ticket_subject}</code>, <code>{ticket_url}</code></li>
+    <li><code>{project_name}</code>, <code>{project_identifier}</code></li>
+    <li><code>{recipient_name}</code>, <code>{recipient_email}</code></li>
+    <li><code>{custom_subject}</code> &mdash; <%= l(:help_sendmail_custom_subject) %></li>
+    <li><code>{comment}</code> &mdash; <%= l(:help_sendmail_comment) %></li>
+    <li><code>{date}</code></li>
+  </ul>
+</div>

@@ -1,0 +1,57 @@
+.redmine-sendmail-form {
+  margin-top: 0.6em;
+}
+
+.redmine-sendmail-form fieldset {
+  background: #fafafa;
+  border: 1px solid #ddd;
+  padding: 0.4em 0.8em;
+}
+
+.redmine-sendmail-form legend {
+  font-weight: bold;
+  padding: 0 0.3em;
+}
+
+.redmine-sendmail-fields p {
+  margin: 0.4em 0;
+}
+
+.redmine-sendmail-fields label {
+  display: inline-block;
+  min-width: 9em;
+  vertical-align: top;
+}
+
+.redmine-sendmail-empty {
+  color: #888;
+}
+
+.redmine-sendmail-status.sent {
+  color: #1a7f37;
+  font-weight: bold;
+}
+
+.redmine-sendmail-status.failed {
+  color: #b91c1c;
+  font-weight: bold;
+}
+
+.redmine-sendmail-body {
+  white-space: pre-wrap;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  padding: 0.6em 0.8em;
+  border-radius: 4px;
+}
+
+.redmine-sendmail-help ul {
+  margin-left: 1em;
+}
+
+.redmine-sendmail-help code {
+  background: #eef;
+  padding: 0 0.2em;
+  border-radius: 3px;
+}

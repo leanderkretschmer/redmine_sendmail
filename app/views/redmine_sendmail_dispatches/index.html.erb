@@ -1,0 +1,40 @@
+<h2><%= l(:label_sendmail) %></h2>
+
+<% if @dispatches.empty? %>
+  <p class="nodata"><%= l(:label_sendmail_no_dispatches) %></p>
+<% else %>
+  <table class="list">
+    <thead>
+      <tr>
+        <th><%= sort_header_tag('created_at', caption: l(:field_created_on)) %></th>
+        <th><%= l(:field_issue) %></th>
+        <th><%= sort_header_tag('recipient_email', caption: l(:label_sendmail_recipient)) %></th>
+        <th><%= sort_header_tag('subject', caption: l(:label_sendmail_subject)) %></th>
+        <th><%= l(:field_user) %></th>
+        <th><%= sort_header_tag('status', caption: l(:field_status)) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @dispatches.each do |d| %>
+        <tr class="<%= cycle('odd', 'even') %>">
+          <td><%= format_time(d.created_at) %></td>
+          <td><%= link_to "##{d.issue_id}", issue_path(d.issue_id) %></td>
+          <td><%= h(d.recipient_email) %></td>
+          <td><%= h(d.subject) %></td>
+          <td><%= h(d.user.try(:name)) %></td>
+          <td>
+            <% if d.sent? %>
+              <span class="redmine-sendmail-status sent"><%= l(:label_sendmail_status_sent) %></span>
+            <% else %>
+              <span class="redmine-sendmail-status failed"><%= l(:label_sendmail_status_failed) %></span>
+            <% end %>
+          </td>
+          <td><%= link_to l(:button_view), project_sendmail_dispatch_path(@project, d) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+
+  <p class="pagination"><%= pagination_links_full @dispatch_pages, @dispatch_count %></p>
+<% end %>
