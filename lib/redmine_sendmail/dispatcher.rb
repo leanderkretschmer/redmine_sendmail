@@ -1,4 +1,5 @@
 require_dependency File.expand_path('template_renderer', __dir__)
+require_dependency File.expand_path('smtp_resolver', __dir__)
 
 module RedmineSendmail
   module Dispatcher
@@ -46,8 +47,10 @@ module RedmineSendmail
       subject = "[##{issue.id}]" if subject.blank?
       body    = TemplateRenderer.render(body_template, vars)
 
-      from_email = settings['from_email'].presence
-      reply_to   = (settings['reply_to_user'].to_s == '1' && user.mail.present?) ? user.mail : nil
+      from_email  = settings['from_email'].presence
+      reply_to    = (settings['reply_to_user'].to_s == '1' && user.mail.present?) ? user.mail : nil
+      smtp_config = SmtpResolver.resolve(settings)
+      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}")
 
       record = RedmineSendmailDispatch.new(
         issue_id:        issue.id,
@@ -70,7 +73,8 @@ module RedmineSendmail
           recipient_name:  recipient_name,
           from_email:      from_email,
           reply_to:        reply_to,
-          extra_headers:   { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s }
+          extra_headers:   { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
+          smtp_config:     smtp_config
         ).deliver_now
       rescue => e
         record.status = 'failed'

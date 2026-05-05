@@ -48,6 +48,80 @@
   </p>
 </div>
 
+<div class="box tabular settings redmine-sendmail-settings">
+  <h3><%= l(:label_sendmail_smtp_section) %></h3>
+  <p class="info"><em><%= l(:label_sendmail_smtp_intro) %></em></p>
+
+  <p>
+    <label for="settings_smtp_use_mail_handler"><%= l(:label_sendmail_smtp_use_mail_handler) %></label>
+    <%= hidden_field_tag 'settings[smtp_use_mail_handler]', '0' %>
+    <%= check_box_tag 'settings[smtp_use_mail_handler]', '1',
+                      @settings['smtp_use_mail_handler'].to_s == '1',
+                      id: 'settings_smtp_use_mail_handler' %>
+    <em class="info"><%= l(:label_sendmail_smtp_use_mail_handler_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_use_custom_smtp"><%= l(:label_sendmail_use_custom_smtp) %></label>
+    <%= hidden_field_tag 'settings[use_custom_smtp]', '0' %>
+    <%= check_box_tag 'settings[use_custom_smtp]', '1',
+                      @settings['use_custom_smtp'].to_s == '1',
+                      id: 'settings_use_custom_smtp' %>
+  </p>
+
+  <p>
+    <label for="settings_smtp_host"><%= l(:label_sendmail_smtp_host) %></label>
+    <%= text_field_tag 'settings[smtp_host]', @settings['smtp_host'],
+                       size: 30, id: 'settings_smtp_host',
+                       placeholder: 'smtp.example.com' %>
+  </p>
+  <p>
+    <label for="settings_smtp_port"><%= l(:label_sendmail_smtp_port) %></label>
+    <%= text_field_tag 'settings[smtp_port]', @settings['smtp_port'],
+                       size: 6, id: 'settings_smtp_port',
+                       placeholder: '587' %>
+  </p>
+  <p>
+    <label for="settings_smtp_ssl"><%= l(:label_sendmail_smtp_ssl) %></label>
+    <%= hidden_field_tag 'settings[smtp_ssl]', '0' %>
+    <%= check_box_tag 'settings[smtp_ssl]', '1',
+                      @settings['smtp_ssl'].to_s == '1',
+                      id: 'settings_smtp_ssl' %>
+    <em class="info"><%= l(:label_sendmail_smtp_ssl_hint) %></em>
+  </p>
+  <p>
+    <label for="settings_smtp_starttls"><%= l(:label_sendmail_smtp_starttls) %></label>
+    <%= hidden_field_tag 'settings[smtp_starttls]', '0' %>
+    <%= check_box_tag 'settings[smtp_starttls]', '1',
+                      @settings['smtp_starttls'].to_s == '1',
+                      id: 'settings_smtp_starttls' %>
+    <em class="info"><%= l(:label_sendmail_smtp_starttls_hint) %></em>
+  </p>
+  <p>
+    <label for="settings_smtp_username"><%= l(:label_sendmail_smtp_username) %></label>
+    <%= text_field_tag 'settings[smtp_username]', @settings['smtp_username'],
+                       size: 30, id: 'settings_smtp_username', autocomplete: 'off' %>
+  </p>
+  <p>
+    <label for="settings_smtp_password"><%= l(:label_sendmail_smtp_password) %></label>
+    <%= password_field_tag 'settings[smtp_password]', @settings['smtp_password'],
+                           size: 30, id: 'settings_smtp_password', autocomplete: 'new-password' %>
+  </p>
+  <p>
+    <label for="settings_smtp_authentication"><%= l(:label_sendmail_smtp_authentication) %></label>
+    <%= select_tag 'settings[smtp_authentication]',
+                   options_for_select(%w[plain login cram_md5], @settings['smtp_authentication'].presence || 'plain'),
+                   id: 'settings_smtp_authentication' %>
+  </p>
+  <p>
+    <label for="settings_smtp_domain"><%= l(:label_sendmail_smtp_domain) %></label>
+    <%= text_field_tag 'settings[smtp_domain]', @settings['smtp_domain'],
+                       size: 30, id: 'settings_smtp_domain',
+                       placeholder: 'example.com' %>
+    <em class="info"><%= l(:label_sendmail_smtp_domain_hint) %></em>
+  </p>
+</div>
+
 <div class="box redmine-sendmail-help">
   <h3><%= l(:label_sendmail_placeholders) %></h3>
   <ul>
