@@ -1,7 +1,8 @@
 require 'redmine'
 
 Rails.application.config.to_prepare do
-  require_dependency File.expand_path('lib/redmine_sendmail/hooks', __dir__)
+  require_dependency File.expand_path('lib/redmine_sendmail/view_hook', __dir__)
+  require_dependency File.expand_path('lib/redmine_sendmail/controller_hook', __dir__)
 end
 
 Redmine::Plugin.register :redmine_sendmail do

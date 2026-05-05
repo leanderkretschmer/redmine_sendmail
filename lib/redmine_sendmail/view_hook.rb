@@ -1,5 +1,3 @@
-require_dependency File.expand_path('dispatcher', __dir__)
-
 module RedmineSendmail
   class ViewHook < Redmine::Hook::ViewListener
     def view_layouts_base_html_head(context = {})
@@ -28,11 +26,6 @@ module RedmineSendmail
                       locals:  { issue: issue, project: project, contacts: contacts })
     end
 
-    def view_issues_form_details_bottom(context = {})
-      # Fallback hook in case the notes hook is not rendered (e.g., new issue with note).
-      ''
-    end
-
     private
 
     def load_contacts(project, user)
@@ -46,24 +39,6 @@ module RedmineSendmail
     rescue => e
       Rails.logger.warn("[redmine_sendmail] failed to load contacts: #{e.class}: #{e.message}")
       []
-    end
-  end
-
-  class ControllerHook < Redmine::Hook::Listener
-    def controller_issues_edit_after_save(context = {})
-      issue   = context[:issue]
-      journal = context[:journal]
-      params  = context[:params]
-      return unless issue && journal && params
-      sm = params[:sendmail]
-      return if sm.blank?
-      project = issue.project
-      return unless project.module_enabled?(:sendmail)
-      return unless User.current.allowed_to?(:send_sendmail, project)
-      sm_hash = sm.respond_to?(:to_unsafe_h) ? sm.to_unsafe_h : sm.to_h
-      RedmineSendmail::Dispatcher.dispatch_for_journal(journal: journal, params: sm_hash.symbolize_keys)
-    rescue => e
-      Rails.logger.error("[redmine_sendmail] dispatch hook failed: #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
     end
   end
 end
