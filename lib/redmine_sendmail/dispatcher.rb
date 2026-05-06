@@ -77,7 +77,7 @@ module RedmineSendmail
       subject = "[##{issue.id}]" if subject.blank?
       body    = TemplateRenderer.render(body_template, vars)
 
-      from_email = settings['from_email'].presence
+      from_email = resolve_from(settings)
       reply_to   = resolve_reply_to(settings)
 
       record = RedmineSendmailDispatch.new(
@@ -114,6 +114,15 @@ module RedmineSendmail
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'
       record
+    end
+
+    def resolve_from(settings)
+      explicit = settings['from_email'].to_s.strip
+      return explicit if explicit.present?
+      mh = SmtpResolver.mail_handler_account_email
+      return mh if mh
+      fallback = (Setting.mail_from rescue nil).to_s.strip
+      fallback.presence
     end
 
     def resolve_reply_to(settings)
