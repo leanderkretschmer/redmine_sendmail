@@ -11,6 +11,9 @@ en:
   label_sendmail_from_email_hint: "Optional. Resolution order: this field → SMTP account from redmine_mail_handler → Redmine's default sender."
   label_sendmail_reply_to_email: "Reply-To address"
   label_sendmail_reply_to_email_hint: "If empty, the SMTP account from the redmine_mail_handler plugin is used (when available). The logged-in Redmine user is never used as Reply-To."
+
+  label_sendmail_use_project_alias: "Use project alias from address matrix"
+  label_sendmail_use_project_alias_hint: "When enabled: for mails from a project that has an alias mapping in redmine_mail_handler, From and Reply-To are set to that alias address (overrides the fields above for that project)."
   label_sendmail_log_dispatches: "Log dispatches"
   label_sendmail_placeholders: "Available placeholders"
 

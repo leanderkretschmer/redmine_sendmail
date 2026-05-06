@@ -1,5 +1,6 @@
 require_dependency File.expand_path('template_renderer', __dir__)
 require_dependency File.expand_path('smtp_resolver', __dir__)
+require_dependency File.expand_path('alias_resolver', __dir__)
 
 module RedmineSendmail
   module Dispatcher
@@ -77,8 +78,9 @@ module RedmineSendmail
       subject = "[##{issue.id}]" if subject.blank?
       body    = TemplateRenderer.render(body_template, vars)
 
-      from_email = resolve_from(settings)
-      reply_to   = resolve_reply_to(settings)
+      project_alias = resolve_project_alias(settings, project)
+      from_email    = project_alias || resolve_from(settings)
+      reply_to      = project_alias || resolve_reply_to(settings)
 
       record = RedmineSendmailDispatch.new(
         issue_id:        issue.id,
@@ -114,6 +116,13 @@ module RedmineSendmail
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'
       record
+    end
+
+    def resolve_project_alias(settings, project)
+      return nil unless settings['use_project_alias'].to_s == '1'
+      email = AliasResolver.alias_for_project(project)
+      Rails.logger.info("[redmine_sendmail] dispatcher: project alias for ##{project.id} -> #{email.inspect}")
+      email
     end
 
     def resolve_from(settings)

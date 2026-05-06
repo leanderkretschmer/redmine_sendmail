@@ -11,6 +11,9 @@ de:
   label_sendmail_from_email_hint: "Optional. Reihenfolge: dieses Feld → SMTP-Konto aus redmine_mail_handler → Redmines Standard-Absenderadresse."
   label_sendmail_reply_to_email: "Antwort-An (Reply-To)"
   label_sendmail_reply_to_email_hint: "Wenn leer, wird das Mailkonto aus den SMTP-Einstellungen des redmine_mail_handler verwendet (sofern vorhanden). Der angemeldete Redmine-Benutzer wird nie als Reply-To gesetzt."
+
+  label_sendmail_use_project_alias: "Projekt-Alias aus Adress-Matrix verwenden"
+  label_sendmail_use_project_alias_hint: "Wenn aktiv: bei Mails aus einem Projekt, dem im redmine_mail_handler eine Alias-Adresse zugeordnet ist, werden Absender und Antwort-An auf diese Alias-Adresse gesetzt (überschreibt obige Einstellungen für dieses Projekt)."
   label_sendmail_log_dispatches: "Versand protokollieren"
   label_sendmail_placeholders: "Verfügbare Platzhalter"
 

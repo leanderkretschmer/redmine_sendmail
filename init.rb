@@ -21,6 +21,7 @@ Redmine::Plugin.register :redmine_sendmail do
       'body_template' => "Hallo {recipient_name},\n\n{comment}\n\n--\n{user_name}\n{user_email}\n\n(Ticket: {ticket_url})\n",
       'from_email' => '',
       'reply_to_email' => '',
+      'use_project_alias' => '0',
       'log_dispatches' => '1',
       'use_custom_smtp' => '0',
       'smtp_use_mail_handler' => '0',

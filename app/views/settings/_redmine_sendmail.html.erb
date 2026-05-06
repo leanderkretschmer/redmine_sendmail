@@ -41,6 +41,15 @@
   </p>
 
   <p>
+    <label for="settings_use_project_alias"><%= l(:label_sendmail_use_project_alias) %></label>
+    <%= hidden_field_tag 'settings[use_project_alias]', '0' %>
+    <%= check_box_tag 'settings[use_project_alias]', '1',
+                      @settings['use_project_alias'].to_s == '1',
+                      id: 'settings_use_project_alias' %>
+    <em class="info"><%= l(:label_sendmail_use_project_alias_hint) %></em>
+  </p>
+
+  <p>
     <label for="settings_log_dispatches"><%= l(:label_sendmail_log_dispatches) %></label>
     <%= hidden_field_tag 'settings[log_dispatches]', '0' %>
     <%= check_box_tag 'settings[log_dispatches]', '1',
