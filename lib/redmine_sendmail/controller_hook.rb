@@ -34,11 +34,11 @@ module RedmineSendmail
                  else
                    att_param
                  end
-      Rails.logger.info("[redmine_sendmail] after_save: dispatching for journal ##{journal.id}, params=#{sm_hash.inspect}, attachments=#{att_hash.is_a?(Hash) ? att_hash.keys.inspect : 'none'}")
-      RedmineSendmail::Dispatcher.dispatch_for_journal(
-        journal:           journal,
-        params:            sm_hash.symbolize_keys,
-        attachment_params: att_hash
+      Rails.logger.info("[redmine_sendmail] after_save: enqueueing dispatch for journal ##{journal.id}, params=#{sm_hash.inspect}, attachments=#{att_hash.is_a?(Hash) ? att_hash.keys.inspect : 'none'}")
+      RedmineSendmailDispatchJob.perform_later(
+        journal_id:        journal.id,
+        params:            sm_hash.deep_stringify_keys,
+        attachment_params: att_hash.is_a?(Hash) ? att_hash.deep_stringify_keys : nil
       )
     rescue => e
       Rails.logger.error("[redmine_sendmail] dispatch hook failed: #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
