@@ -1,17 +1,9 @@
 require 'redmine'
 
-plugin_root = __dir__
-%w[app/jobs].each do |sub|
-  path = File.expand_path(sub, plugin_root)
-  unless Rails.application.config.autoload_paths.include?(path)
-    Rails.application.config.autoload_paths << path
-    Rails.application.config.eager_load_paths << path
-  end
-end
-
 Rails.application.config.to_prepare do
   require_dependency File.expand_path('lib/redmine_sendmail/view_hook', __dir__)
   require_dependency File.expand_path('lib/redmine_sendmail/controller_hook', __dir__)
+  require_dependency File.expand_path('app/jobs/redmine_sendmail_dispatch_job', __dir__)
 end
 
 Redmine::Plugin.register :redmine_sendmail do
