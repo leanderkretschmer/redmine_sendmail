@@ -6,7 +6,7 @@ module RedmineSendmail
   module Dispatcher
     module_function
 
-    def dispatch_for_journal(journal:, params:)
+    def dispatch_for_journal(journal:, params:, attachment_params: nil)
       return [] if params.blank?
       return [] unless journal && journal.notes.present?
 
@@ -23,8 +23,10 @@ module RedmineSendmail
 
       settings    = Setting.plugin_redmine_sendmail || {}
       smtp_config = SmtpResolver.resolve(settings)
-      attachments_data = build_attachments_data(journal)
-      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s); #{attachments_data.size} attachment(s)")
+      attachments      = collect_attachments(journal: journal, issue: issue, attachment_params: attachment_params)
+      attachments_data = build_attachments_data(attachments)
+      cleaned_notes    = strip_inline_image_refs(journal.notes.to_s, attachments)
+      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
 
       contact_ids.map do |cid|
         dispatch_one(
@@ -36,14 +38,14 @@ module RedmineSendmail
           custom_subject:   custom_subject,
           settings:         settings,
           smtp_config:      smtp_config,
-          attachments_data: attachments_data
+          attachments_data: attachments_data,
+          comment_text:     cleaned_notes
         )
       end.compact
     end
 
-    def build_attachments_data(journal)
-      attachments = collect_journal_attachments(journal)
-      attachments.filter_map do |att|
+    def build_attachments_data(attachments)
+      Array(attachments).filter_map do |att|
         path = att.respond_to?(:diskfile) ? att.diskfile.to_s : nil
         if path.blank? || !File.exist?(path) || !File.readable?(path)
           Rails.logger.warn("[redmine_sendmail] attachment ##{att.id} (#{att.filename}) not readable on disk (#{path.inspect}) — skipping")
@@ -60,17 +62,56 @@ module RedmineSendmail
       end
     end
 
-    def collect_journal_attachments(journal)
-      return [] unless journal && defined?(Attachment)
-      ids = Array(journal.details).select { |d| d.property.to_s == 'attachment' }
-                                  .map    { |d| d.prop_key.to_i }
-                                  .reject(&:zero?)
-                                  .uniq
+    def collect_attachments(journal:, issue:, attachment_params:)
+      return [] unless defined?(Attachment)
+      ids = []
+      ids.concat(journal_attachment_ids(journal))
+      ids.concat(token_attachment_ids(attachment_params))
+      ids = ids.reject(&:zero?).uniq
       return [] if ids.empty?
-      Attachment.where(id: ids).to_a
+      scope = Attachment.where(id: ids)
+      if issue
+        scope = scope.where(container_type: 'Issue', container_id: issue.id)
+      end
+      scope.to_a
     rescue => e
-      Rails.logger.warn("[redmine_sendmail] failed to collect attachments for journal ##{journal&.id}: #{e.class}: #{e.message}")
+      Rails.logger.warn("[redmine_sendmail] failed to collect attachments: #{e.class}: #{e.message}")
       []
+    end
+
+    def journal_attachment_ids(journal)
+      return [] unless journal
+      JournalDetail.where(journal_id: journal.id, property: 'attachment').pluck(:prop_key).map(&:to_i)
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] journal detail lookup failed: #{e.class}: #{e.message}")
+      []
+    end
+
+    def token_attachment_ids(attachment_params)
+      return [] unless attachment_params.is_a?(Hash)
+      ids = []
+      attachment_params.each_value do |attrs|
+        next unless attrs.is_a?(Hash)
+        token = attrs[:token] || attrs['token']
+        next if token.to_s.empty?
+        if token.to_s =~ /\A(\d+)\.[0-9a-f]+\z/
+          ids << Regexp.last_match(1).to_i
+        end
+      end
+      ids
+    end
+
+    def strip_inline_image_refs(text, attachments)
+      return text if text.to_s.empty? || Array(attachments).empty?
+      result = text.dup
+      Array(attachments).each do |att|
+        fn = att.filename.to_s
+        next if fn.empty?
+        escaped = Regexp.escape(fn)
+        pattern = /![^!\n]*?#{escaped}[^!\n]*?!(?::\S+)?/
+        result.gsub!(pattern, '')
+      end
+      result
     end
 
     def extract_contact_ids(params)
@@ -83,7 +124,7 @@ module RedmineSendmail
       ids.map { |v| v.to_s.strip }.reject(&:blank?).uniq
     end
 
-    def dispatch_one(issue:, project:, journal:, user:, contact_id:, custom_subject:, settings:, smtp_config:, attachments_data: [])
+    def dispatch_one(issue:, project:, journal:, user:, contact_id:, custom_subject:, settings:, smtp_config:, attachments_data: [], comment_text: nil)
       contact = lookup_contact(contact_id, project, user)
       unless contact
         Rails.logger.warn("[redmine_sendmail] contact ##{contact_id} not found / not visible — skipping")
@@ -103,7 +144,7 @@ module RedmineSendmail
         recipient_email: recipient_email,
         recipient_name:  recipient_name,
         custom_subject:  custom_subject,
-        comment:         journal.notes
+        comment:         comment_text.presence || journal.notes
       )
 
       subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'

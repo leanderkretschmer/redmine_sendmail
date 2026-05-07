@@ -26,8 +26,20 @@ module RedmineSendmail
         return
       end
       sm_hash = sm.respond_to?(:to_unsafe_h) ? sm.to_unsafe_h : sm.to_h
-      Rails.logger.info("[redmine_sendmail] after_save: dispatching for journal ##{journal.id}, params=#{sm_hash.inspect}")
-      RedmineSendmail::Dispatcher.dispatch_for_journal(journal: journal, params: sm_hash.symbolize_keys)
+      att_param = params[:attachments]
+      att_hash = if att_param.respond_to?(:to_unsafe_h)
+                   att_param.to_unsafe_h
+                 elsif att_param.respond_to?(:to_h)
+                   att_param.to_h
+                 else
+                   att_param
+                 end
+      Rails.logger.info("[redmine_sendmail] after_save: dispatching for journal ##{journal.id}, params=#{sm_hash.inspect}, attachments=#{att_hash.is_a?(Hash) ? att_hash.keys.inspect : 'none'}")
+      RedmineSendmail::Dispatcher.dispatch_for_journal(
+        journal:           journal,
+        params:            sm_hash.symbolize_keys,
+        attachment_params: att_hash
+      )
     rescue => e
       Rails.logger.error("[redmine_sendmail] dispatch hook failed: #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
     end
