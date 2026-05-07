@@ -144,7 +144,8 @@ module RedmineSendmail
         recipient_email: recipient_email,
         recipient_name:  recipient_name,
         custom_subject:  custom_subject,
-        comment:         comment_text.presence || journal.notes
+        comment:         comment_text.presence || journal.notes,
+        settings:        settings
       )
 
       subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'

@@ -31,6 +31,7 @@ Redmine::Plugin.register :redmine_sendmail do
       'from_email' => '',
       'reply_to_email' => '',
       'use_project_alias' => '0',
+      'project_identifier_slice' => '',
       'log_dispatches' => '1',
       'use_custom_smtp' => '0',
       'smtp_use_mail_handler' => '0',

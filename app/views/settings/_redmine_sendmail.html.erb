@@ -50,6 +50,15 @@
   </p>
 
   <p>
+    <label for="settings_project_identifier_slice"><%= l(:label_sendmail_project_identifier_slice) %></label>
+    <%= text_field_tag 'settings[project_identifier_slice]',
+                       @settings['project_identifier_slice'],
+                       size: 12, id: 'settings_project_identifier_slice',
+                       placeholder: '1-8' %>
+    <em class="info"><%= l(:label_sendmail_project_identifier_slice_hint) %></em>
+  </p>
+
+  <p>
     <label for="settings_log_dispatches"><%= l(:label_sendmail_log_dispatches) %></label>
     <%= hidden_field_tag 'settings[log_dispatches]', '0' %>
     <%= check_box_tag 'settings[log_dispatches]', '1',
@@ -141,6 +150,7 @@
     <li><code>{ticket_id}</code> &mdash; <%= l(:help_sendmail_ticket_id) %></li>
     <li><code>{ticket_subject}</code>, <code>{ticket_url}</code></li>
     <li><code>{project_name}</code>, <code>{project_identifier}</code></li>
+    <li><code>{projekt-kennung}</code> &mdash; <%= l(:help_sendmail_projekt_kennung) %></li>
     <li><code>{recipient_name}</code>, <code>{recipient_email}</code></li>
     <li><code>{custom_subject}</code> &mdash; <%= l(:help_sendmail_custom_subject) %></li>
     <li><code>{comment}</code> &mdash; <%= l(:help_sendmail_comment) %></li>

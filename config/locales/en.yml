@@ -14,6 +14,9 @@ en:
 
   label_sendmail_use_project_alias: "Use project alias from address matrix"
   label_sendmail_use_project_alias_hint: "When enabled: for mails from a project that has an alias mapping in redmine_mail_handler, From and Reply-To are set to that alias address (overrides the fields above for that project)."
+
+  label_sendmail_project_identifier_slice: "Project identifier slice"
+  label_sendmail_project_identifier_slice_hint: "Controls which part of the project identifier is inserted by the {projekt-kennung} placeholder. Empty or 'all' returns the full identifier. A range like '1-8' takes characters 1..8, '4-8' takes characters 4..8. Example: 'PFP12345-detail' with '1-8' yields 'PFP12345'."
   label_sendmail_log_dispatches: "Log dispatches"
   label_sendmail_placeholders: "Available placeholders"
 
@@ -53,3 +56,4 @@ en:
   help_sendmail_ticket_id: "Ticket id of the issue from which the mail is sent"
   help_sendmail_custom_subject: "Subject typed by the user in the ticket form"
   help_sendmail_comment: "Body of the ticket comment"
+  help_sendmail_projekt_kennung: "Redmine project identifier, optionally limited to a character range (see setting above)"
