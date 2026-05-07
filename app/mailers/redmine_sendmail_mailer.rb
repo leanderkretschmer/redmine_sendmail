@@ -1,17 +1,29 @@
 class RedmineSendmailMailer < ActionMailer::Base
   default content_type: 'text/plain', charset: 'UTF-8'
 
-  def dispatch(subject:, body:, recipient_email:, recipient_name: nil, from_email: nil, reply_to: nil, extra_headers: {}, smtp_config: nil)
+  def dispatch(subject:, body:, recipient_email:, recipient_name: nil, from_email: nil, reply_to: nil, extra_headers: {}, smtp_config: nil, attachments_data: nil)
     to_header = recipient_name.present? ? %("#{recipient_name}" <#{recipient_email}>) : recipient_email
 
+    has_attachments = attachments_data.is_a?(Array) && attachments_data.any?
+
     headers = {
-      to:           to_header,
-      subject:      subject,
-      content_type: 'text/plain'
+      to:      to_header,
+      subject: subject
     }
+    headers[:content_type] = 'text/plain' unless has_attachments
     headers[:from]     = from_email if from_email.present?
     headers[:reply_to] = reply_to   if reply_to.present?
     headers.merge!(extra_headers) if extra_headers.is_a?(Hash)
+
+    if has_attachments
+      attachments_data.each do |a|
+        next unless a.is_a?(Hash) && a[:filename].present? && a[:content].present?
+        attachments[a[:filename]] = {
+          mime_type: a[:content_type].presence || 'application/octet-stream',
+          content:   a[:content]
+        }
+      end
+    end
 
     @body_text = body.to_s
 

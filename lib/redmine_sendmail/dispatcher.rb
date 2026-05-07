@@ -23,20 +23,54 @@ module RedmineSendmail
 
       settings    = Setting.plugin_redmine_sendmail || {}
       smtp_config = SmtpResolver.resolve(settings)
-      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s)")
+      attachments_data = build_attachments_data(journal)
+      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s); #{attachments_data.size} attachment(s)")
 
       contact_ids.map do |cid|
         dispatch_one(
-          issue:          issue,
-          project:        project,
-          journal:        journal,
-          user:           user,
-          contact_id:     cid,
-          custom_subject: custom_subject,
-          settings:       settings,
-          smtp_config:    smtp_config
+          issue:            issue,
+          project:          project,
+          journal:          journal,
+          user:             user,
+          contact_id:       cid,
+          custom_subject:   custom_subject,
+          settings:         settings,
+          smtp_config:      smtp_config,
+          attachments_data: attachments_data
         )
       end.compact
+    end
+
+    def build_attachments_data(journal)
+      attachments = collect_journal_attachments(journal)
+      attachments.filter_map do |att|
+        path = att.respond_to?(:diskfile) ? att.diskfile.to_s : nil
+        if path.blank? || !File.exist?(path) || !File.readable?(path)
+          Rails.logger.warn("[redmine_sendmail] attachment ##{att.id} (#{att.filename}) not readable on disk (#{path.inspect}) — skipping")
+          next nil
+        end
+        {
+          filename:     att.filename.to_s,
+          content:      File.binread(path),
+          content_type: att.respond_to?(:content_type) ? att.content_type.to_s : nil
+        }
+      rescue => e
+        Rails.logger.warn("[redmine_sendmail] failed to read attachment ##{att.id}: #{e.class}: #{e.message}")
+        nil
+      end
+    end
+
+    def collect_journal_attachments(journal)
+      return [] unless journal && defined?(Attachment)
+      ids = Array(journal.details).select { |d| d.property.to_s == 'attachment' }
+                                  .map    { |d| d.prop_key.to_i }
+                                  .reject(&:zero?)
+                                  .uniq
+      return [] if ids.empty?
+      Attachment.where(id: ids).to_a
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] failed to collect attachments for journal ##{journal&.id}: #{e.class}: #{e.message}")
+      []
     end
 
     def extract_contact_ids(params)
@@ -49,7 +83,7 @@ module RedmineSendmail
       ids.map { |v| v.to_s.strip }.reject(&:blank?).uniq
     end
 
-    def dispatch_one(issue:, project:, journal:, user:, contact_id:, custom_subject:, settings:, smtp_config:)
+    def dispatch_one(issue:, project:, journal:, user:, contact_id:, custom_subject:, settings:, smtp_config:, attachments_data: [])
       contact = lookup_contact(contact_id, project, user)
       unless contact
         Rails.logger.warn("[redmine_sendmail] contact ##{contact_id} not found / not visible — skipping")
@@ -95,17 +129,18 @@ module RedmineSendmail
         status:          'sent'
       )
 
-      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id}, contact ##{contact.id}, from=#{from_email.inspect}, reply_to=#{reply_to.inspect})")
+      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id}, contact ##{contact.id}, from=#{from_email.inspect}, reply_to=#{reply_to.inspect}, attachments=#{attachments_data.size})")
       begin
         delivered = RedmineSendmailMailer.dispatch(
-          subject:         subject,
-          body:            body,
-          recipient_email: recipient_email,
-          recipient_name:  recipient_name,
-          from_email:      from_email,
-          reply_to:        reply_to,
-          extra_headers:   { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
-          smtp_config:     smtp_config
+          subject:          subject,
+          body:             body,
+          recipient_email:  recipient_email,
+          recipient_name:   recipient_name,
+          from_email:       from_email,
+          reply_to:         reply_to,
+          extra_headers:    { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
+          smtp_config:      smtp_config,
+          attachments_data: attachments_data
         ).deliver_now
         Rails.logger.info("[redmine_sendmail] dispatcher: deliver_now OK (message_id=#{delivered&.message_id.inspect}, body_size=#{body.to_s.bytesize})")
       rescue => e
