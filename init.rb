@@ -3,7 +3,12 @@ require 'redmine'
 Rails.application.config.to_prepare do
   require_dependency File.expand_path('lib/redmine_sendmail/view_hook', __dir__)
   require_dependency File.expand_path('lib/redmine_sendmail/controller_hook', __dir__)
+  require_dependency File.expand_path('lib/redmine_sendmail/projects_helper_patch', __dir__)
   require_dependency File.expand_path('app/jobs/redmine_sendmail_dispatch_job', __dir__)
+
+  unless ProjectsHelper.include?(RedmineSendmail::ProjectsHelperPatch)
+    ProjectsHelper.prepend(RedmineSendmail::ProjectsHelperPatch)
+  end
 end
 
 Redmine::Plugin.register :redmine_sendmail do
@@ -21,6 +26,7 @@ Redmine::Plugin.register :redmine_sendmail do
       'subject_template' => '[#{ticket_id}] {custom_subject}',
       'body_template' => "Hallo {recipient_name},\n\n{comment}\n\n--\n{user_name}\n{user_email}\n\n(Ticket: {ticket_url})\n",
       'from_email' => '',
+      'from_name' => '',
       'reply_to_email' => '',
       'use_project_alias' => '0',
       'project_identifier_slice' => '',
@@ -42,6 +48,9 @@ Redmine::Plugin.register :redmine_sendmail do
   project_module :sendmail do
     permission :send_sendmail,
                { redmine_sendmail_dispatches: [:index, :show] },
+               require: :member
+    permission :manage_sendmail_settings,
+               { redmine_sendmail_dispatches: [:update_project_settings] },
                require: :member
   end
 

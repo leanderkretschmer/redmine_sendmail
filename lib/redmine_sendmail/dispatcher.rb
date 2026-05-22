@@ -44,6 +44,46 @@ module RedmineSendmail
       end.compact
     end
 
+    # Sends a freshly created issue as an e-mail: the issue subject becomes the
+    # mail subject (via the configured subject template) and the issue
+    # description — with inline image syntax stripped and the referenced files
+    # attached — becomes the body.
+    def dispatch_for_issue(issue:, params:, attachment_params: nil)
+      return [] if params.blank?
+      return [] unless issue
+
+      contact_ids = extract_contact_ids(params)
+      if contact_ids.empty?
+        Rails.logger.info("[redmine_sendmail] dispatcher: no contacts selected for issue ##{issue.id}")
+        return []
+      end
+
+      project = issue.project
+      user    = issue.author || User.current
+
+      settings    = Setting.plugin_redmine_sendmail || {}
+      smtp_config = SmtpResolver.resolve(settings)
+      attachments      = collect_issue_attachments(issue, attachment_params)
+      attachments_data = build_attachments_data(attachments)
+      cleaned_body     = strip_inline_image_refs(issue.description.to_s, attachments)
+      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id}; SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
+
+      contact_ids.map do |cid|
+        dispatch_one(
+          issue:            issue,
+          project:          project,
+          journal:          nil,
+          user:             user,
+          contact_id:       cid,
+          custom_subject:   issue.subject.to_s,
+          settings:         settings,
+          smtp_config:      smtp_config,
+          attachments_data: attachments_data,
+          comment_text:     cleaned_body
+        )
+      end.compact
+    end
+
     def build_attachments_data(attachments)
       Array(attachments).filter_map do |att|
         path = att.respond_to?(:diskfile) ? att.diskfile.to_s : nil
@@ -79,6 +119,24 @@ module RedmineSendmail
       []
     end
 
+    # For a freshly created issue all uploaded files are already attached to the
+    # issue itself; we still merge any upload-token ids defensively.
+    def collect_issue_attachments(issue, attachment_params)
+      return [] unless issue
+      list = Array(issue.attachments).dup
+      token_ids = token_attachment_ids(attachment_params)
+      if token_ids.any? && defined?(Attachment)
+        existing = list.map(&:id)
+        extra = Attachment.where(id: token_ids - existing,
+                                 container_type: 'Issue', container_id: issue.id).to_a
+        list.concat(extra)
+      end
+      list.uniq(&:id)
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] failed to collect issue attachments: #{e.class}: #{e.message}")
+      Array(issue&.attachments)
+    end
+
     def journal_attachment_ids(journal)
       return [] unless journal
       JournalDetail.where(journal_id: journal.id, property: 'attachment').pluck(:prop_key).map(&:to_i)
@@ -101,17 +159,40 @@ module RedmineSendmail
       ids
     end
 
+    # Redmine/Textile inline image syntax, e.g.
+    #   !image.png!  /  !>image.png!  /  !{width:50%}image.png!  /  !image.png(alt)!:url
+    # Pasted screenshots arrive URL-encoded in the comment
+    # (!Bildschirmfoto%202026-05-22%20um%2013.23.43.png!) and therefore never
+    # match an attachment filename literally — so we also strip by extension.
+    INLINE_IMAGE_PATTERN = /
+      !                                                  # opening marker
+      (?:[<>=]|\{[^}]*\}|\([^)]*\)|\[[^\]]*\])*           # optional alignment \/ style \/ class
+      [^\s!]+?                                            # image path \/ URL (no spaces)
+      \.(?:png|jpe?g|gif|bmp|webp|svg|tiff?|heic|avif)    # image extension
+      (?:\([^)]*\))?                                      # optional (alt text)
+      !                                                  # closing marker
+      (?::\S+)?                                           # optional :link suffix
+    /xi
+
     def strip_inline_image_refs(text, attachments)
-      return text if text.to_s.empty? || Array(attachments).empty?
-      result = text.dup
+      result = text.to_s
+      return result if result.empty?
+
+      # 1) Remove references that match a real attachment filename — handles
+      #    arbitrary extensions and the optional ":url" suffix.
       Array(attachments).each do |att|
         fn = att.filename.to_s
         next if fn.empty?
         escaped = Regexp.escape(fn)
-        pattern = /![^!\n]*?#{escaped}[^!\n]*?!(?::\S+)?/
-        result.gsub!(pattern, '')
+        result = result.gsub(/![^!\n]*?#{escaped}[^!\n]*?!(?::\S+)?/, '')
       end
-      result
+
+      # 2) Remove any remaining generic inline image syntax (URL-encoded names).
+      result = result.gsub(INLINE_IMAGE_PATTERN, '')
+
+      # Tidy up whitespace left behind by removed image lines.
+      result = result.gsub(/[ \t]+$/, '')
+      result.gsub(/\n{3,}/, "\n\n")
     end
 
     def extract_contact_ids(params)
@@ -144,7 +225,7 @@ module RedmineSendmail
         recipient_email: recipient_email,
         recipient_name:  recipient_name,
         custom_subject:  custom_subject,
-        comment:         comment_text.presence || journal.notes,
+        comment:         comment_text.presence || journal&.notes,
         settings:        settings
       )
 
@@ -155,12 +236,13 @@ module RedmineSendmail
       body    = TemplateRenderer.render(body_template, vars)
 
       project_alias = resolve_project_alias(settings, project)
-      from_email    = project_alias || resolve_from(settings)
-      reply_to      = project_alias || resolve_reply_to(settings)
+      from_email    = project_alias || resolve_from(settings, vars)
+      reply_to      = project_alias || resolve_reply_to(settings, vars)
+      from_name     = TemplateRenderer.render(settings['from_name'].to_s, vars).strip.presence
 
       record = RedmineSendmailDispatch.new(
         issue_id:        issue.id,
-        journal_id:      journal.id,
+        journal_id:      journal&.id,
         project_id:      project.id,
         user_id:         user.id,
         contact_id:      contact.id,
@@ -171,7 +253,7 @@ module RedmineSendmail
         status:          'sent'
       )
 
-      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal.id}, contact ##{contact.id}, from=#{from_email.inspect}, reply_to=#{reply_to.inspect}, attachments=#{attachments_data.size})")
+      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal&.id || '-'}, contact ##{contact.id}, from=#{from_email.inspect}, from_name=#{from_name.inspect}, reply_to=#{reply_to.inspect}, attachments=#{attachments_data.size})")
       begin
         delivered = RedmineSendmailMailer.dispatch(
           subject:          subject,
@@ -179,6 +261,7 @@ module RedmineSendmail
           recipient_email:  recipient_email,
           recipient_name:   recipient_name,
           from_email:       from_email,
+          from_name:        from_name,
           reply_to:         reply_to,
           extra_headers:    { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
           smtp_config:      smtp_config,
@@ -202,8 +285,8 @@ module RedmineSendmail
       email
     end
 
-    def resolve_from(settings)
-      explicit = settings['from_email'].to_s.strip
+    def resolve_from(settings, vars = {})
+      explicit = TemplateRenderer.render(settings['from_email'].to_s, vars).strip
       return explicit if explicit.present?
       mh = SmtpResolver.mail_handler_account_email
       return mh if mh
@@ -211,8 +294,8 @@ module RedmineSendmail
       fallback.presence
     end
 
-    def resolve_reply_to(settings)
-      explicit = settings['reply_to_email'].to_s.strip
+    def resolve_reply_to(settings, vars = {})
+      explicit = TemplateRenderer.render(settings['reply_to_email'].to_s, vars).strip
       return explicit if explicit.present?
       SmtpResolver.mail_handler_account_email
     end

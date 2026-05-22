@@ -6,6 +6,7 @@ module RedmineSendmail
       user_name user_login user_firstname user_lastname user_email
       ticket_id ticket_subject ticket_url
       project_name project_identifier projekt_kennung projekt-kennung
+      project_info_1 project_info_2 project-info-1 project-info-2
       recipient_name recipient_email
       custom_subject comment date
     ].freeze
@@ -24,6 +25,7 @@ module RedmineSendmail
       project = issue.project
       identifier = project.identifier.to_s
       projekt_kennung = slice_identifier(identifier, settings['project_identifier_slice'])
+      project_info_1, project_info_2 = RedmineSendmailProjectSetting.values_for(project)
       {
         'user_name'         => user.name,
         'user_login'        => user.login,
@@ -37,6 +39,10 @@ module RedmineSendmail
         'project_identifier'=> identifier,
         'projekt_kennung'   => projekt_kennung,
         'projekt-kennung'   => projekt_kennung,
+        'project_info_1'    => project_info_1,
+        'project_info_2'    => project_info_2,
+        'project-info-1'    => project_info_1,
+        'project-info-2'    => project_info_2,
         'recipient_name'    => recipient_name.to_s,
         'recipient_email'   => recipient_email.to_s,
         'custom_subject'    => custom_subject.to_s,

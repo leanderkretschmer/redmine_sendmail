@@ -1,0 +1,22 @@
+<% setting = RedmineSendmailProjectSetting.find_or_initialize_by(project_id: @project.id) %>
+
+<%= labelled_form_for :redmine_sendmail_project_setting, setting,
+        url: project_sendmail_project_settings_path(@project),
+        html: { method: :put, id: 'redmine_sendmail_project_settings_form' } do |f| %>
+
+  <div class="box tabular">
+    <p class="info"><em><%= l(:label_sendmail_project_info_intro) %></em></p>
+
+    <p>
+      <%= f.text_field :info_1, label: l(:label_sendmail_project_info_1), size: 80 %>
+      <em class="info"><%= l(:label_sendmail_project_info_1_hint) %></em>
+    </p>
+
+    <p>
+      <%= f.text_field :info_2, label: l(:label_sendmail_project_info_2), size: 80 %>
+      <em class="info"><%= l(:label_sendmail_project_info_2_hint) %></em>
+    </p>
+  </div>
+
+  <%= submit_tag l(:button_save) %>
+<% end %>

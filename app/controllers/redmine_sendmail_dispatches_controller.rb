@@ -19,4 +19,23 @@ class RedmineSendmailDispatchesController < ApplicationController
   def show
     @dispatch = RedmineSendmailDispatch.where(project_id: @project.id).find(params[:id])
   end
+
+  def update_project_settings
+    setting = RedmineSendmailProjectSetting.find_or_initialize_by(project_id: @project.id)
+    setting.attributes = project_settings_params
+    if setting.save
+      flash[:notice] = l(:notice_successful_update)
+    else
+      flash[:error] = setting.errors.full_messages.join(', ')
+    end
+    redirect_to settings_project_path(@project, tab: 'redmine_sendmail')
+  end
+
+  private
+
+  def project_settings_params
+    params.require(:redmine_sendmail_project_setting).permit(:info_1, :info_2)
+  rescue ActionController::ParameterMissing
+    {}
+  end
 end

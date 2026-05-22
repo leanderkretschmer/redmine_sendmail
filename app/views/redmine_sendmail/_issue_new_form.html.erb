@@ -1,0 +1,35 @@
+<div id="redmine-sendmail-form" class="redmine-sendmail-form" data-sendmail-form>
+  <fieldset class="collapsible">
+    <legend><%= l(:label_sendmail_send_new_issue) %></legend>
+    <div class="redmine-sendmail-fields">
+      <p>
+        <label><%= l(:label_sendmail_recipients) %></label>
+        <% if contacts.any? %>
+          <div class="redmine-sendmail-recipients" data-sendmail-recipients>
+            <% contacts.each do |c| %>
+              <label class="redmine-sendmail-recipient-item">
+                <%= check_box_tag 'sendmail[contact_ids][]',
+                                  c.id,
+                                  false,
+                                  id: "sendmail_contact_#{c.id}",
+                                  data: { 'sendmail-recipient' => true,
+                                          'email' => c.primary_email,
+                                          'name'  => c.name } %>
+                <span class="redmine-sendmail-recipient-name"><%= h(c.name) %></span>
+                <span class="redmine-sendmail-recipient-email">&lt;<%= h(c.primary_email) %>&gt;</span>
+              </label>
+            <% end %>
+          </div>
+          <em class="redmine-sendmail-hint-static info"><%= l(:label_sendmail_recipients_hint) %></em>
+        <% else %>
+          <em class="redmine-sendmail-empty">
+            <%= l(:label_sendmail_no_contacts_in_project) %>
+          </em>
+        <% end %>
+      </p>
+      <p class="redmine-sendmail-hint" data-sendmail-hint style="display:none;">
+        <em><%= l(:label_sendmail_will_send_new_issue_hint) %></em>
+      </p>
+    </div>
+  </fieldset>
+</div>

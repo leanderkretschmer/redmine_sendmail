@@ -32,6 +32,15 @@
   </p>
 
   <p>
+    <label for="settings_from_name"><%= l(:label_sendmail_from_name) %></label>
+    <%= text_field_tag 'settings[from_name]',
+                       @settings['from_name'],
+                       size: 40, id: 'settings_from_name',
+                       placeholder: 'Support {project_name}' %>
+    <em class="info"><%= l(:label_sendmail_from_name_hint) %></em>
+  </p>
+
+  <p>
     <label for="settings_reply_to_email"><%= l(:label_sendmail_reply_to_email) %></label>
     <%= text_field_tag 'settings[reply_to_email]',
                        @settings['reply_to_email'],
@@ -151,6 +160,7 @@
     <li><code>{ticket_subject}</code>, <code>{ticket_url}</code></li>
     <li><code>{project_name}</code>, <code>{project_identifier}</code></li>
     <li><code>{projekt-kennung}</code> &mdash; <%= l(:help_sendmail_projekt_kennung) %></li>
+    <li><code>{project_info_1}</code>, <code>{project_info_2}</code> &mdash; <%= l(:help_sendmail_project_info) %></li>
     <li><code>{recipient_name}</code>, <code>{recipient_email}</code></li>
     <li><code>{custom_subject}</code> &mdash; <%= l(:help_sendmail_custom_subject) %></li>
     <li><code>{comment}</code> &mdash; <%= l(:help_sendmail_comment) %></li>

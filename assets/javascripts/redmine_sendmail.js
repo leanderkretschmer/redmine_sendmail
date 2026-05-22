@@ -1,14 +1,12 @@
 (function () {
   'use strict';
 
-  function initRecipientForm() {
-    var form = document.querySelector('[data-sendmail-form]');
-    if (!form) { return; }
+  function wireForm(form) {
     var checkboxes = form.querySelectorAll('[data-sendmail-recipient]');
     var subjectRow = form.querySelector('[data-sendmail-subject-row]');
     var subjectInput = form.querySelector('[data-sendmail-subject]');
     var hint = form.querySelector('[data-sendmail-hint]');
-    if (!checkboxes.length || !subjectRow || !subjectInput) { return; }
+    if (!checkboxes.length) { return; }
 
     function anyChecked() {
       for (var i = 0; i < checkboxes.length; i++) {
@@ -19,13 +17,17 @@
 
     function update() {
       var visible = anyChecked();
-      subjectRow.style.display = visible ? '' : 'none';
+      // The notes form has a subject field; the new-issue form does not
+      // (the ticket name is used as the subject), so guard each element.
+      if (subjectRow) { subjectRow.style.display = visible ? '' : 'none'; }
       if (hint) { hint.style.display = visible ? '' : 'none'; }
-      if (visible) {
-        subjectInput.required = true;
-      } else {
-        subjectInput.required = false;
-        subjectInput.value = '';
+      if (subjectInput) {
+        if (visible) {
+          subjectInput.required = true;
+        } else {
+          subjectInput.required = false;
+          subjectInput.value = '';
+        }
       }
     }
 
@@ -33,6 +35,13 @@
       checkboxes[i].addEventListener('change', update);
     }
     update();
+  }
+
+  function initRecipientForm() {
+    var forms = document.querySelectorAll('[data-sendmail-form]');
+    for (var i = 0; i < forms.length; i++) {
+      wireForm(forms[i]);
+    }
   }
 
   function highlightSentJournals() {

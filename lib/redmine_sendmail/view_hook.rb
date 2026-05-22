@@ -36,6 +36,31 @@ module RedmineSendmail
                       locals:  { issue: issue, project: project, contacts: contacts })
     end
 
+    def view_issues_form_details_bottom(context = {})
+      issue = context[:issue]
+      return '' unless issue && issue.new_record?
+      project = issue.project || context[:project]
+      unless project
+        Rails.logger.info('[redmine_sendmail] new-issue view_hook: skip (no project yet)')
+        return ''
+      end
+      unless project.module_enabled?(:sendmail)
+        Rails.logger.info("[redmine_sendmail] new-issue view_hook: skip (module 'sendmail' not enabled on project ##{project.id})")
+        return ''
+      end
+      unless User.current.allowed_to?(:send_sendmail, project)
+        Rails.logger.info("[redmine_sendmail] new-issue view_hook: skip (user #{User.current.login} lacks :send_sendmail)")
+        return ''
+      end
+
+      controller = context[:controller]
+      contacts   = load_contacts(project, User.current)
+      Rails.logger.info("[redmine_sendmail] new-issue view_hook: rendering form for project ##{project.id}, #{contacts.size} contact(s)")
+      controller.send(:render_to_string,
+                      partial: 'redmine_sendmail/issue_new_form',
+                      locals:  { issue: issue, project: project, contacts: contacts })
+    end
+
     def view_issues_history_journal_bottom(context = {})
       journal = context[:journal]
       return '' unless journal
