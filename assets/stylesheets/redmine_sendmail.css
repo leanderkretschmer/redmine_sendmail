@@ -47,6 +47,30 @@
   white-space: nowrap;
 }
 
+/* The new-issue form is rendered inside Redmine's <div class="box tabular">,
+   whose ".tabular label { float:left; width:175px; margin-left:-180px;
+   text-align:right }" rule would otherwise pull the recipient <label>s on top
+   of each other. Override with higher specificity so the picker renders as a
+   plain vertical list — identical to the comment form. */
+.redmine-sendmail-form .redmine-sendmail-recipients label.redmine-sendmail-recipient-item {
+  display: block;
+  float: none;
+  width: auto;
+  min-width: 0;
+  margin-left: 0;
+  text-align: left;
+  line-height: normal;
+  font-weight: normal;
+}
+
+.redmine-sendmail-form .redmine-sendmail-fields > p > label {
+  float: none;
+  width: auto;
+  margin-left: 0;
+  text-align: left;
+  line-height: normal;
+}
+
 .redmine-sendmail-recipient-item input[type="checkbox"] {
   margin-right: 0.4em;
   vertical-align: middle;
