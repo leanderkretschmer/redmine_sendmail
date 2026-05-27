@@ -21,8 +21,10 @@ module RedmineSendmail
       project        = issue.project
       user           = journal.user || User.current
 
-      settings    = Setting.plugin_redmine_sendmail || {}
-      smtp_config = SmtpResolver.resolve(settings)
+      global_settings = Setting.plugin_redmine_sendmail || {}
+      project_setting = RedmineSendmailProjectSetting.for_project(project)
+      settings        = RedmineSendmailProjectSetting.effective_settings(project, global_settings)
+      smtp_config     = project_setting&.smtp_config_hash || SmtpResolver.resolve(global_settings)
       attachments      = collect_attachments(journal: journal, issue: issue, attachment_params: attachment_params)
       attachments_data = build_attachments_data(attachments)
       cleaned_notes    = strip_inline_image_refs(journal.notes.to_s, attachments)
@@ -61,8 +63,10 @@ module RedmineSendmail
       project = issue.project
       user    = issue.author || User.current
 
-      settings    = Setting.plugin_redmine_sendmail || {}
-      smtp_config = SmtpResolver.resolve(settings)
+      global_settings = Setting.plugin_redmine_sendmail || {}
+      project_setting = RedmineSendmailProjectSetting.for_project(project)
+      settings        = RedmineSendmailProjectSetting.effective_settings(project, global_settings)
+      smtp_config     = project_setting&.smtp_config_hash || SmtpResolver.resolve(global_settings)
       attachments      = collect_issue_attachments(issue, attachment_params)
       attachments_data = build_attachments_data(attachments)
       cleaned_body     = strip_inline_image_refs(issue.description.to_s, attachments)

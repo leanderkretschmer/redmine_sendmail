@@ -44,10 +44,19 @@ Voraussetzungen:
    * Optional: Versand-Logging
 2. Im Projekt unter *Einstellungen → Module* das Modul **„Sendmail“** aktivieren.
 3. Mitgliedern die Berechtigung **„E-Mails an Kontakte senden“** geben.
-4. Optional: pro Projekt unter *Einstellungen → Mail-Versand* die beiden freien
-   Felder **Projekt-Info 1/2** pflegen — diese stehen in allen Vorlagen als
-   `{project_info_1}` / `{project_info_2}` zur Verfügung (Berechtigung
-   **„Mail-Versand-Einstellungen verwalten“**).
+4. Optional (nur Redmine-**Admins**): pro Projekt unter *Einstellungen → Mail-Versand*
+   können folgende Werte gepflegt werden:
+   * **Projekt-Info 1/2** &mdash; freie Werte, in allen Vorlagen als
+     `{project_info_1}` / `{project_info_2}` nutzbar.
+   * **Betreff-/Body-Vorlage** sowie **Absender-Adresse / Absender-Name / Reply-To**
+     als Projekt-Overrides &mdash; gesetzte Felder ersetzen die globalen Vorlagen
+     ausschließlich für dieses Projekt; leere Felder erben die globale Einstellung.
+   * **Eigenes SMTP-Konto** &mdash; Mails dieses Projekts werden dann über das
+     Projekt-SMTP-Konto verschickt (oder optional über das Konto aus
+     `redmine_mail_handler`); ohne Override gilt die globale Versand-Konfiguration.
+
+   Der Tab erscheint nur, wenn das Modul *Sendmail* im Projekt aktiviert ist und der
+   angemeldete Benutzer ein Redmine-Administrator ist.
 
 Beim Versand wird Redmines Inline-Bild-Syntax (z. B.
 `!Bildschirmfoto%202026-05-22%20um%2013.23.43.png!`) aus dem Mailtext entfernt;

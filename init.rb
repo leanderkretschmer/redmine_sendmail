@@ -49,9 +49,6 @@ Redmine::Plugin.register :redmine_sendmail do
     permission :send_sendmail,
                { redmine_sendmail_dispatches: [:index, :show] },
                require: :member
-    permission :manage_sendmail_settings,
-               { redmine_sendmail_dispatches: [:update_project_settings] },
-               require: :member
   end
 
   menu :project_menu,

@@ -5,18 +5,105 @@
         html: { method: :put, id: 'redmine_sendmail_project_settings_form' } do |f| %>
 
   <div class="box tabular">
+    <h3><%= l(:label_sendmail_project_info_section) %></h3>
     <p class="info"><em><%= l(:label_sendmail_project_info_intro) %></em></p>
 
     <p>
       <%= f.text_field :info_1, label: l(:label_sendmail_project_info_1), size: 80 %>
       <em class="info"><%= l(:label_sendmail_project_info_1_hint) %></em>
     </p>
-
     <p>
       <%= f.text_field :info_2, label: l(:label_sendmail_project_info_2), size: 80 %>
       <em class="info"><%= l(:label_sendmail_project_info_2_hint) %></em>
     </p>
   </div>
 
-  <%= submit_tag l(:button_save) %>
+  <div class="box tabular">
+    <h3><%= l(:label_sendmail_project_templates_section) %></h3>
+    <p class="info"><em><%= l(:label_sendmail_project_override_intro) %></em></p>
+
+    <p>
+      <%= f.text_field :subject_template, label: l(:label_sendmail_subject_template), size: 80,
+                       placeholder: '[#{ticket_id}] {custom_subject}' %>
+      <em class="info"><%= l(:label_sendmail_project_override_hint) %></em>
+    </p>
+    <p>
+      <%= f.text_area :body_template, label: l(:label_sendmail_body_template), rows: 12, cols: 80 %>
+      <em class="info"><%= l(:label_sendmail_project_override_hint) %></em>
+    </p>
+  </div>
+
+  <div class="box tabular">
+    <h3><%= l(:label_sendmail_project_sender_section) %></h3>
+    <p class="info"><em><%= l(:label_sendmail_project_override_intro) %></em></p>
+
+    <p>
+      <%= f.text_field :from_email, label: l(:label_sendmail_from_email), size: 60,
+                       placeholder: 'no-reply@example.com' %>
+      <em class="info"><%= l(:label_sendmail_project_override_hint) %></em>
+    </p>
+    <p>
+      <%= f.text_field :from_name, label: l(:label_sendmail_from_name), size: 60,
+                       placeholder: 'Support {project_name}' %>
+      <em class="info"><%= l(:label_sendmail_project_override_hint) %></em>
+    </p>
+    <p>
+      <%= f.text_field :reply_to_email, label: l(:label_sendmail_reply_to_email), size: 60,
+                       placeholder: 'support@example.com' %>
+      <em class="info"><%= l(:label_sendmail_project_override_hint) %></em>
+    </p>
+  </div>
+
+  <div class="box tabular">
+    <h3><%= l(:label_sendmail_project_smtp_section) %></h3>
+    <p class="info"><em><%= l(:label_sendmail_project_smtp_intro) %></em></p>
+
+    <p>
+      <%= f.check_box :smtp_use_mail_handler, label: l(:label_sendmail_smtp_use_mail_handler) %>
+      <em class="info"><%= l(:label_sendmail_smtp_use_mail_handler_hint) %></em>
+    </p>
+    <p>
+      <%= f.check_box :use_custom_smtp, label: l(:label_sendmail_use_custom_smtp) %>
+    </p>
+    <p>
+      <%= f.text_field :smtp_host, label: l(:label_sendmail_smtp_host), size: 40,
+                       placeholder: 'smtp.example.com' %>
+    </p>
+    <p>
+      <%= f.text_field :smtp_port, label: l(:label_sendmail_smtp_port), size: 8,
+                       placeholder: '587' %>
+    </p>
+    <p>
+      <%= f.check_box :smtp_ssl, label: l(:label_sendmail_smtp_ssl) %>
+      <em class="info"><%= l(:label_sendmail_smtp_ssl_hint) %></em>
+    </p>
+    <p>
+      <%= f.check_box :smtp_starttls, label: l(:label_sendmail_smtp_starttls) %>
+      <em class="info"><%= l(:label_sendmail_smtp_starttls_hint) %></em>
+    </p>
+    <p>
+      <%= f.text_field :smtp_username, label: l(:label_sendmail_smtp_username), size: 40,
+                       autocomplete: 'off' %>
+    </p>
+    <p>
+      <%= f.password_field :smtp_password, label: l(:label_sendmail_smtp_password),
+                           size: 40, autocomplete: 'new-password', value: '',
+                           placeholder: setting.smtp_password.to_s.present? ? '••••••••' : '' %>
+      <em class="info"><%= l(:label_sendmail_smtp_password_keep_hint) %></em>
+    </p>
+    <p>
+      <label for="redmine_sendmail_project_setting_smtp_authentication" class="block"><%= l(:label_sendmail_smtp_authentication) %></label>
+      <%= f.select :smtp_authentication,
+                   options_for_select(%w[plain login cram_md5], (setting.smtp_authentication.presence || 'plain')) %>
+    </p>
+    <p>
+      <%= f.text_field :smtp_domain, label: l(:label_sendmail_smtp_domain), size: 40,
+                       placeholder: 'example.com' %>
+      <em class="info"><%= l(:label_sendmail_smtp_domain_hint) %></em>
+    </p>
+  </div>
+
+  <p>
+    <%= submit_tag l(:button_save) %>
+  </p>
 <% end %>

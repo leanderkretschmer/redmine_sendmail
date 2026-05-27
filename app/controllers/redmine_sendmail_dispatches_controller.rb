@@ -1,9 +1,19 @@
 class RedmineSendmailDispatchesController < ApplicationController
   before_action :find_project_by_project_id
-  before_action :authorize
+  before_action :require_admin, only: [:update_project_settings]
+  before_action :authorize,     except: [:update_project_settings]
 
   helper :sort
   include SortHelper
+
+  PERMITTED_PROJECT_SETTINGS = %i[
+    info_1 info_2
+    body_template subject_template
+    from_email from_name reply_to_email
+    use_custom_smtp smtp_use_mail_handler
+    smtp_host smtp_port smtp_ssl smtp_starttls
+    smtp_authentication smtp_username smtp_password smtp_domain
+  ].freeze
 
   def index
     sort_init 'created_at', 'desc'
@@ -34,7 +44,10 @@ class RedmineSendmailDispatchesController < ApplicationController
   private
 
   def project_settings_params
-    params.require(:redmine_sendmail_project_setting).permit(:info_1, :info_2)
+    permitted = params.require(:redmine_sendmail_project_setting).permit(*PERMITTED_PROJECT_SETTINGS)
+    # Empty password field on edit must not clobber the stored credential.
+    permitted.delete(:smtp_password) if permitted[:smtp_password].to_s.empty?
+    permitted
   rescue ActionController::ParameterMissing
     {}
   end
