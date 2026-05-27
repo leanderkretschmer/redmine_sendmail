@@ -23,13 +23,7 @@
           <td><%= h(d.recipient_email) %></td>
           <td><%= h(d.subject) %></td>
           <td><%= h(d.user.try(:name)) %></td>
-          <td>
-            <% if d.sent? %>
-              <span class="redmine-sendmail-status sent"><%= l(:label_sendmail_status_sent) %></span>
-            <% else %>
-              <span class="redmine-sendmail-status failed"><%= l(:label_sendmail_status_failed) %></span>
-            <% end %>
-          </td>
+          <td><%= sendmail_status_cell(d) %></td>
           <td><%= link_to l(:button_view), project_sendmail_dispatch_path(@project, d) %></td>
         </tr>
       <% end %>

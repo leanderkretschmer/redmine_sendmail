@@ -77,3 +77,18 @@ de:
   label_sendmail_project_override_hint: "Leer = globale Plugin-Einstellung verwenden."
   label_sendmail_project_smtp_intro: "Wenn aktiv, werden Mails dieses Projekts über das hier konfigurierte SMTP-Konto verschickt — andernfalls greift die globale Versand-Konfiguration."
   label_sendmail_smtp_password_keep_hint: "Leer lassen, um das bereits gespeicherte Passwort beizubehalten."
+
+  label_sendmail_resend: "Erneut senden"
+  label_sendmail_failure_diagnosis: "Diagnose"
+  label_sendmail_failure_invalid_address:       "Empfänger-Adresse ungültig."
+  label_sendmail_failure_domain_not_resolvable: "Empfänger-Domain konnte nicht aufgelöst werden — die Domain existiert vermutlich nicht (mehr)."
+  label_sendmail_failure_domain_no_mx:          "Empfänger-Domain hat keinen Mailserver (MX-Eintrag fehlt) — Mail kann dort nicht zugestellt werden."
+  label_sendmail_failure_mailbox_unknown:       "Der Mailserver hat das Postfach abgelehnt (User unknown) — Adresse vermutlich inaktiv."
+  label_sendmail_failure_mailbox_full:          "Postfach des Empfängers ist voll / Quota überschritten."
+  label_sendmail_failure_auth_failed:           "Authentifizierung am SMTP-Server fehlgeschlagen — Zugangsdaten prüfen."
+  label_sendmail_failure_rate_limited:          "SMTP-Server hat Versand wegen Rate-Limit abgewiesen — später erneut versuchen."
+  label_sendmail_failure_spam_blocked:          "Empfänger-Server hat die Mail als Spam abgelehnt."
+  label_sendmail_failure_smtp_error:            "SMTP-Versand fehlgeschlagen — Details in der Fehlermeldung."
+
+  notice_sendmail_resend_queued: "Erneuter Versand wurde durchgeführt."
+  notice_sendmail_resend_failed: "Erneuter Versand fehlgeschlagen."

@@ -1,6 +1,7 @@
 require_dependency File.expand_path('template_renderer', __dir__)
 require_dependency File.expand_path('smtp_resolver', __dir__)
 require_dependency File.expand_path('alias_resolver', __dir__)
+require_dependency File.expand_path('bounce_checker', __dir__)
 
 module RedmineSendmail
   module Dispatcher
@@ -11,6 +12,7 @@ module RedmineSendmail
       return [] unless journal && journal.notes.present?
 
       contact_ids = extract_contact_ids(params)
+      Rails.logger.info("[redmine_sendmail] dispatcher: journal ##{journal.id} got #{contact_ids.size} recipient id(s): #{contact_ids.inspect}")
       if contact_ids.empty?
         Rails.logger.info("[redmine_sendmail] dispatcher: no contacts selected for journal ##{journal.id}")
         return []
@@ -55,6 +57,7 @@ module RedmineSendmail
       return [] unless issue
 
       contact_ids = extract_contact_ids(params)
+      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id} got #{contact_ids.size} recipient id(s): #{contact_ids.inspect}")
       if contact_ids.empty?
         Rails.logger.info("[redmine_sendmail] dispatcher: no contacts selected for issue ##{issue.id}")
         return []
@@ -275,11 +278,93 @@ module RedmineSendmail
       rescue => e
         record.status = 'failed'
         record.error_message = "#{e.class}: #{e.message}"
-        Rails.logger.error("[redmine_sendmail] delivery failed for #{recipient_email}: #{e.class}: #{e.message}\n#{Array(e.backtrace).first(5).join("\n")}")
+        record.failure_reason_detail = BounceChecker.analyze(recipient_email, record.error_message)
+        Rails.logger.error("[redmine_sendmail] delivery failed for #{recipient_email}: #{e.class}: #{e.message} (diagnosis=#{record.failure_reason_detail.inspect})\n#{Array(e.backtrace).first(5).join("\n")}")
       end
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'
       record
+    end
+
+    # Re-sends a previously logged dispatch using the saved subject/body
+    # and the *current* sender / SMTP configuration. Inline attachments are
+    # not re-attached (the user can re-send from the original comment for
+    # that). A new RedmineSendmailDispatch row is always created so the
+    # original failed entry remains in the log for traceability.
+    def resend(dispatch)
+      return nil unless dispatch
+      project = Project.find_by(id: dispatch.project_id)
+      unless project
+        Rails.logger.warn("[redmine_sendmail] resend ##{dispatch.id}: project ##{dispatch.project_id} not found")
+        return nil
+      end
+
+      global_settings = Setting.plugin_redmine_sendmail || {}
+      project_setting = RedmineSendmailProjectSetting.for_project(project)
+      settings        = RedmineSendmailProjectSetting.effective_settings(project, global_settings)
+      smtp_config     = project_setting&.smtp_config_hash || SmtpResolver.resolve(global_settings)
+
+      info_1, info_2 = RedmineSendmailProjectSetting.values_for(project)
+      identifier     = project.identifier.to_s
+      projekt_kennung = TemplateRenderer.slice_identifier(identifier, settings['project_identifier_slice'])
+      vars = {
+        'recipient_email'     => dispatch.recipient_email.to_s,
+        'recipient_name'      => dispatch.recipient_name.to_s,
+        'project_name'        => project.name.to_s,
+        'project_identifier'  => identifier,
+        'projekt-kennung'     => projekt_kennung,
+        'projekt_kennung'     => projekt_kennung,
+        'project_info_1'      => info_1,
+        'project_info_2'      => info_2,
+        'project-info-1'      => info_1,
+        'project-info-2'      => info_2
+      }
+
+      project_alias = resolve_project_alias(settings, project)
+      from_email    = project_alias || resolve_from(settings, vars)
+      reply_to      = project_alias || resolve_reply_to(settings, vars)
+      from_name     = TemplateRenderer.render(settings['from_name'].to_s, vars).strip.presence
+
+      new_record = RedmineSendmailDispatch.new(
+        issue_id:        dispatch.issue_id,
+        journal_id:      dispatch.journal_id,
+        project_id:      dispatch.project_id,
+        user_id:         User.current.id || dispatch.user_id,
+        contact_id:      dispatch.contact_id,
+        recipient_email: dispatch.recipient_email,
+        recipient_name:  dispatch.recipient_name,
+        subject:         dispatch.subject,
+        body:            dispatch.body,
+        status:          'sent'
+      )
+
+      Rails.logger.info("[redmine_sendmail] resend ##{dispatch.id} → #{dispatch.recipient_email} (from=#{from_email.inspect})")
+      begin
+        RedmineSendmailMailer.dispatch(
+          subject:         dispatch.subject,
+          body:            dispatch.body,
+          recipient_email: dispatch.recipient_email,
+          recipient_name:  dispatch.recipient_name,
+          from_email:      from_email,
+          from_name:       from_name,
+          reply_to:        reply_to,
+          extra_headers:   {
+            'X-Redmine-Issue'           => dispatch.issue_id.to_s,
+            'X-Redmine-Project'         => project.identifier.to_s,
+            'X-Redmine-Sendmail-Resend' => dispatch.id.to_s
+          },
+          smtp_config:     smtp_config,
+          attachments_data: []
+        ).deliver_now
+      rescue => e
+        new_record.status = 'failed'
+        new_record.error_message = "#{e.class}: #{e.message}"
+        new_record.failure_reason_detail = BounceChecker.analyze(dispatch.recipient_email, new_record.error_message)
+        Rails.logger.error("[redmine_sendmail] resend ##{dispatch.id} failed: #{e.class}: #{e.message} (diagnosis=#{new_record.failure_reason_detail.inspect})")
+      end
+
+      new_record.save
+      new_record
     end
 
     def resolve_project_alias(settings, project)

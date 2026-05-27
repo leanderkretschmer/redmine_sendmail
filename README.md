@@ -75,3 +75,62 @@ Versendete Mails werden (sofern Logging aktiviert) im Projektmenü **„Mail-Ver
 
 Die Platzhalter funktionieren in Betreff- und Body-Vorlage sowie in den Feldern
 Absender-Adresse, Absender-Name und Reply-To.
+
+## Versand-Status, Bounce-Diagnose und erneutes Senden
+
+Der Status (`sent` / `failed`) wird aus dem Ergebnis von ActionMailers
+`deliver_now` gesetzt — also dem tatsächlichen Antwortverhalten des
+SMTP-Servers. Schlägt der Versand fehl, klassifiziert das Plugin die Ursache
+nach den gängigen SMTP-Mustern (z. B. `5.1.1` → *user unknown*) und prüft per
+DNS-MX-Lookup, ob die Empfänger-Domain überhaupt einen Mailserver hat. Das
+Ergebnis steht in der Spalte `failure_reason_detail` und erscheint im
+Mail-Versand-Log (Projektmenü „Mail-Versand“) als Tooltip neben dem
+`Fehler`-Status. Mögliche Codes: `invalid_address`, `domain_not_resolvable`,
+`domain_no_mx`, `mailbox_unknown`, `mailbox_full`, `auth_failed`,
+`rate_limited`, `spam_blocked`, `smtp_error`.
+
+Administratoren sehen in der Detailansicht einer Mail einen **„Erneut
+senden“**-Button. Der Resend nutzt den gespeicherten Betreff/Mailtext und die
+*aktuelle* Sender-/SMTP-Konfiguration (so kann ein vorher konfigurierter
+Fehler korrigiert werden, ohne dass der Original-Kommentar erneut bearbeitet
+werden muss). Es wird ein neuer Log-Eintrag erzeugt; der ursprünglich
+fehlgeschlagene Eintrag bleibt zur Nachvollziehbarkeit bestehen.
+
+## JSON-API
+
+Die versendeten Mails sind authentifiziert (Redmine-API-Key oder Session)
+abrufbar:
+
+| Methode | Pfad                                                        | Zweck                                                                 |
+|---------|-------------------------------------------------------------|------------------------------------------------------------------------|
+| GET     | `/projects/:project_id/sendmail.json`                       | Alle Versand-Einträge des Projekts                                     |
+| GET     | `/projects/:project_id/sendmail.json?journal_id=N`          | Alle Empfänger, die für **Kommentar** N versendet wurden               |
+| GET     | `/projects/:project_id/sendmail.json?issue_id=N`            | Alle Empfänger, die für **Ticket** N versendet wurden                  |
+| GET     | `/projects/:project_id/sendmail/:id.json`                   | Einzelner Versand                                                       |
+
+Antwortformat (vereinfacht):
+
+```json
+{
+  "dispatches": [
+    {
+      "id": 42,
+      "created_at": "2026-05-27T11:23:45Z",
+      "project_id": 2,
+      "issue_id": 17,
+      "journal_id": 89,
+      "recipient_name": "Max Mustermann",
+      "recipient_email": "max@example.com",
+      "subject": "[#17] Anfrage Wartung",
+      "status": "sent",
+      "error_message": null,
+      "failure_reason_detail": null
+    }
+  ],
+  "total_count": 1
+}
+```
+
+Voraussetzungen: API-Zugriff in *Administration → Einstellungen → API* aktiviert,
+und der API-User benötigt die Permission **„E-Mails an Kontakte senden“** im
+Projekt (entspricht der Sichtbarkeit des Mail-Versand-Logs in der UI).

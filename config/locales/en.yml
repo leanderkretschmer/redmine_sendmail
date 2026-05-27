@@ -77,3 +77,18 @@ en:
   label_sendmail_project_override_hint: "Empty = use the global plugin setting."
   label_sendmail_project_smtp_intro: "When enabled, mails for this project are delivered through the SMTP account configured below — otherwise the global delivery configuration applies."
   label_sendmail_smtp_password_keep_hint: "Leave empty to keep the previously saved password."
+
+  label_sendmail_resend: "Resend"
+  label_sendmail_failure_diagnosis: "Diagnosis"
+  label_sendmail_failure_invalid_address:       "Invalid recipient address."
+  label_sendmail_failure_domain_not_resolvable: "Recipient domain could not be resolved — the domain most likely does not exist (any more)."
+  label_sendmail_failure_domain_no_mx:          "Recipient domain has no mail server (no MX record) — mail cannot be delivered there."
+  label_sendmail_failure_mailbox_unknown:       "Receiving server rejected the mailbox (user unknown) — address is likely inactive."
+  label_sendmail_failure_mailbox_full:          "Recipient mailbox is full / quota exceeded."
+  label_sendmail_failure_auth_failed:           "SMTP authentication failed — check credentials."
+  label_sendmail_failure_rate_limited:          "SMTP server refused delivery due to rate limiting — try again later."
+  label_sendmail_failure_spam_blocked:          "Recipient server rejected the message as spam."
+  label_sendmail_failure_smtp_error:            "SMTP delivery failed — see the error message for details."
+
+  notice_sendmail_resend_queued: "Resend completed."
+  notice_sendmail_resend_failed: "Resend failed."

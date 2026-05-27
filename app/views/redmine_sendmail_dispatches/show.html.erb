@@ -13,6 +13,10 @@
       <span class="redmine-sendmail-status sent"><%= l(:label_sendmail_status_sent) %></span>
     <% else %>
       <span class="redmine-sendmail-status failed"><%= l(:label_sendmail_status_failed) %></span>
+      <% reason = sendmail_failure_reason_label(@dispatch.failure_reason_detail) %>
+      <% if reason.present? %>
+        <br><strong><%= l(:label_sendmail_failure_diagnosis) %>:</strong> <%= h(reason) %>
+      <% end %>
       <% if @dispatch.error_message.present? %>
         <br><em><%= h(@dispatch.error_message) %></em>
       <% end %>
@@ -25,4 +29,14 @@
   <pre class="redmine-sendmail-body"><%= h(@dispatch.body) %></pre>
 </fieldset>
 
-<p><%= link_to l(:button_back), project_sendmail_dispatches_path(@project) %></p>
+<p>
+  <%= link_to l(:button_back), project_sendmail_dispatches_path(@project) %>
+  <% if User.current.admin? %>
+    &nbsp;|&nbsp;
+    <%= button_to l(:label_sendmail_resend),
+                  resend_project_sendmail_dispatch_path(@project, @dispatch),
+                  method: :post,
+                  data:   { confirm: l(:text_are_you_sure) },
+                  class:  'redmine-sendmail-resend-button' %>
+  <% end %>
+</p>
