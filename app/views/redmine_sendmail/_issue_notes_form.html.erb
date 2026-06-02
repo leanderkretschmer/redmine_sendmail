@@ -1,13 +1,33 @@
-<div id="redmine-sendmail-form" class="redmine-sendmail-form" data-sendmail-form>
+<div id="redmine-sendmail-form"
+     class="redmine-sendmail-form"
+     data-sendmail-form
+     data-sendmail-preview-url="<%= preview_project_sendmail_dispatches_path(project) %>"
+     data-sendmail-save-and-send-label="<%= l(:label_sendmail_save_and_send) %>"
+     data-sendmail-label-heading="<%= l(:label_sendmail_preview_heading) %>"
+     data-sendmail-label-subject="<%= l(:label_sendmail_subject) %>"
+     data-sendmail-label-from="<%= l(:label_sendmail_from_email) %>"
+     data-sendmail-label-to="<%= l(:label_sendmail_recipient) %>"
+     data-sendmail-label-reply-to="<%= l(:label_sendmail_reply_to_email) %>"
+     data-sendmail-label-send="<%= l(:label_sendmail_preview_send) %>"
+     data-sendmail-label-edit="<%= l(:label_sendmail_preview_edit) %>"
+     data-sendmail-label-close="<%= l(:button_close) %>"
+     data-sendmail-label-multi="<%= l(:label_sendmail_preview_multi_note) %>">
   <fieldset class="collapsible">
     <legend><%= l(:label_sendmail_send_to_contact) %></legend>
     <div class="redmine-sendmail-fields">
       <p>
         <label><%= l(:label_sendmail_recipients) %></label>
         <% if contacts.any? %>
+          <input type="text"
+                 class="redmine-sendmail-recipient-search"
+                 data-sendmail-recipient-search
+                 placeholder="<%= l(:label_sendmail_recipient_search_placeholder) %>"
+                 autocomplete="off">
           <div class="redmine-sendmail-recipients" data-sendmail-recipients>
             <% contacts.each do |c| %>
-              <label class="redmine-sendmail-recipient-item">
+              <label class="redmine-sendmail-recipient-item"
+                     data-sendmail-recipient-item
+                     data-search-blob="<%= h("#{c.name} #{c.primary_email}".downcase) %>">
                 <%= check_box_tag 'sendmail[contact_ids][]',
                                   c.id,
                                   false,

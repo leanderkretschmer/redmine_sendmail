@@ -191,3 +191,135 @@
 .redmine-sendmail-resend-button input[type="submit"]:hover {
   background: #166c2e;
 }
+
+/* Recipient search bar */
+.redmine-sendmail-recipient-search {
+  display: block;
+  width: 22em;
+  margin-bottom: 0.3em;
+  padding: 0.25em 0.4em;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  background: #fff;
+}
+
+/* Preview modal */
+.redmine-sendmail-preview-modal {
+  display: none;
+  position: fixed;
+  z-index: 10000;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.redmine-sendmail-preview-modal.active {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.redmine-sendmail-preview-content {
+  background: #fff;
+  max-width: 720px;
+  width: 90%;
+  max-height: 85vh;
+  overflow-y: auto;
+  border-radius: 6px;
+  padding: 1.2em 1.4em;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.redmine-sendmail-preview-heading {
+  margin-top: 0;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.4em;
+}
+
+.redmine-sendmail-preview-meta div {
+  margin: 0.15em 0;
+}
+
+.redmine-sendmail-preview-subject-row {
+  margin: 0.6em 0 0.4em 0;
+}
+
+.redmine-sendmail-preview-multi-note {
+  margin-top: 0.4em;
+  padding: 0.3em 0.6em;
+  background: #fff7e0;
+  border-left: 3px solid #d9b500;
+  font-style: italic;
+}
+
+.redmine-sendmail-preview-body {
+  white-space: pre-wrap;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  padding: 0.7em 0.9em;
+  border-radius: 4px;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.redmine-sendmail-preview-actions {
+  margin-top: 1em;
+  text-align: right;
+}
+
+.redmine-sendmail-preview-actions button {
+  margin-left: 0.5em;
+  padding: 0.4em 1em;
+  border-radius: 3px;
+  border: 1px solid #ccc;
+  background: #f0f0f0;
+  cursor: pointer;
+}
+
+.redmine-sendmail-preview-actions button.redmine-sendmail-preview-send {
+  background: #1a7f37;
+  border-color: #1a7f37;
+  color: #fff;
+}
+
+.redmine-sendmail-preview-actions button.redmine-sendmail-preview-send:hover {
+  background: #166c2e;
+}
+
+.redmine-sendmail-preview-error {
+  margin-top: 0.8em;
+  padding: 0.4em 0.6em;
+  background: #fdecea;
+  border-left: 3px solid #b91c1c;
+  color: #7a1f1f;
+}
+
+/* Contact-page per-project kennung table */
+.redmine-sendmail-kennungen-block {
+  margin-top: 1.2em;
+  padding: 0.8em 1em;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fafbfc;
+}
+
+.redmine-sendmail-kennungen-table {
+  width: 100%;
+  margin-top: 0.6em;
+}
+
+.redmine-sendmail-kennungen-table td,
+.redmine-sendmail-kennungen-table th {
+  padding: 0.35em 0.5em;
+}
+
+.redmine-sendmail-kennung-input {
+  width: 14em;
+}
+
+.redmine-sendmail-kennung-current code {
+  background: #eef;
+  padding: 0 0.25em;
+  border-radius: 3px;
+  color: #555;
+}

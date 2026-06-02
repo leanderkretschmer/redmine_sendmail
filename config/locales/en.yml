@@ -92,3 +92,14 @@ en:
 
   notice_sendmail_resend_queued: "Resend completed."
   notice_sendmail_resend_failed: "Resend failed."
+
+  label_sendmail_recipient_search_placeholder: "Search recipients…"
+  label_sendmail_save_and_send: "Save & Send"
+  label_sendmail_preview_heading: "Mail preview"
+  label_sendmail_preview_send: "Send"
+  label_sendmail_preview_edit: "Edit"
+  label_sendmail_preview_multi_note: "%{count} recipients selected — the preview shows the mail for the first one. Recipient-specific placeholders (e.g. {recipient_name}, {kunden-projekt-kennung}) are replaced per recipient."
+
+  label_sendmail_contact_kennung_section: "Mail dispatch: customer-project identifier"
+  label_sendmail_contact_kennung_intro: "Per-project free-form identifier of this contact. Replaces the placeholder {kunden-projekt-kennung} in mail templates at send time. Only admins can edit these values."
+  label_sendmail_contact_kennung_value: "Identifier"

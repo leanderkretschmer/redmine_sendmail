@@ -3,7 +3,7 @@ class RedmineSendmailDispatchesController < ApplicationController
   before_action :require_admin, only: [:update_project_settings, :resend]
   before_action :authorize,     except: [:update_project_settings, :resend]
 
-  accept_api_auth :index, :show
+  accept_api_auth :index, :show, :preview
 
   helper :sort
   include SortHelper
@@ -64,6 +64,74 @@ class RedmineSendmailDispatchesController < ApplicationController
       flash[:error] = new_record.error_message.presence || l(:notice_sendmail_resend_failed)
     end
     redirect_to project_sendmail_dispatch_path(@project, dispatch)
+  end
+
+  def preview
+    sm = params[:sendmail].respond_to?(:to_unsafe_h) ? params[:sendmail].to_unsafe_h : (params[:sendmail] || {}).to_h
+    contact_ids = RedmineSendmail::Dispatcher.extract_contact_ids(sm.deep_symbolize_keys)
+    if contact_ids.empty?
+      render json: { error: 'no_recipients' }, status: 422
+      return
+    end
+
+    issue = if params[:issue_id].to_s.present?
+              Issue.find_by(id: params[:issue_id])
+            else
+              nil
+            end
+    issue ||= Issue.new(project: @project, subject: params[:ticket_subject].to_s, description: params[:body].to_s)
+
+    contact = RedmineSendmail::Dispatcher.lookup_contact(contact_ids.first, @project, User.current)
+    unless contact && contact.primary_email.to_s.strip.present?
+      render json: { error: 'recipient_not_found' }, status: 422
+      return
+    end
+
+    global_settings = Setting.plugin_redmine_sendmail || {}
+    settings        = RedmineSendmailProjectSetting.effective_settings(@project, global_settings)
+    user            = User.current
+
+    custom_subject = params[:subject].to_s
+    body_input     = params[:body].to_s
+
+    vars = RedmineSendmail::TemplateRenderer.build_vars(
+      user:            user,
+      issue:           issue,
+      contact:         contact,
+      recipient_email: contact.primary_email.to_s.strip,
+      recipient_name:  contact.name,
+      custom_subject:  custom_subject,
+      comment:         body_input,
+      settings:        settings
+    )
+    vars['kunden-projekt-kennung'] = RedmineSendmailContactProjectKennung.value_for(contact, @project)
+    vars['kunden_projekt_kennung'] = vars['kunden-projekt-kennung']
+
+    subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'
+    body_template    = settings['body_template'].to_s
+    rendered_subject = RedmineSendmail::TemplateRenderer.render(subject_template, vars).strip
+    rendered_subject = "[##{issue.id}]" if rendered_subject.blank?
+    rendered_body    = RedmineSendmail::TemplateRenderer.render(body_template, vars)
+
+    from_email = RedmineSendmail::Dispatcher.resolve_project_alias(settings, @project) ||
+                 RedmineSendmail::Dispatcher.resolve_from(settings, vars)
+    reply_to   = RedmineSendmail::Dispatcher.resolve_project_alias(settings, @project) ||
+                 RedmineSendmail::Dispatcher.resolve_reply_to(settings, vars)
+    from_name  = RedmineSendmail::TemplateRenderer.render(settings['from_name'].to_s, vars).strip.presence
+
+    render json: {
+      subject:         rendered_subject,
+      body:            rendered_body,
+      from:            from_email,
+      from_name:       from_name,
+      reply_to:        reply_to,
+      recipient_name:  contact.name,
+      recipient_email: contact.primary_email.to_s,
+      recipient_count: contact_ids.size
+    }
+  rescue => e
+    Rails.logger.error("[redmine_sendmail] preview failed: #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
+    render json: { error: 'render_failed', message: e.message }, status: 500
   end
 
   def update_project_settings

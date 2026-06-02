@@ -6,7 +6,8 @@ module RedmineSendmail
       is_issues = controller.is_a?(IssuesController)
       is_dispatches = defined?(RedmineSendmailDispatchesController) &&
                       controller.is_a?(RedmineSendmailDispatchesController)
-      return '' unless is_issues || is_dispatches
+      is_contacts = defined?(ContactsController) && controller.is_a?(ContactsController)
+      return '' unless is_issues || is_dispatches || is_contacts
       out = [stylesheet_link_tag('redmine_sendmail', plugin: 'redmine_sendmail')]
       out << javascript_include_tag('redmine_sendmail', plugin: 'redmine_sendmail') if is_issues
       safe_join(out, "\n")
@@ -63,13 +64,44 @@ module RedmineSendmail
 
     def view_issues_history_journal_bottom(context = {})
       journal = context[:journal]
-      return '' unless journal
+      return '' unless journal && journal.id
       dispatches = RedmineSendmailDispatch.where(journal_id: journal.id).order(:created_at).to_a
       return '' if dispatches.empty?
       controller = context[:controller]
       controller.send(:render_to_string,
                       partial: 'redmine_sendmail/journal_sent_marker',
                       locals:  { dispatches: dispatches })
+    end
+
+    def view_issues_show_description_bottom(context = {})
+      issue = context[:issue]
+      return '' unless issue && issue.id
+      dispatches = RedmineSendmailDispatch.where(issue_id: issue.id, journal_id: nil)
+                                          .order(:created_at).to_a
+      return '' if dispatches.empty?
+      controller = context[:controller]
+      controller.send(:render_to_string,
+                      partial: 'redmine_sendmail/journal_sent_marker',
+                      locals:  { dispatches: dispatches })
+    end
+
+    def view_contacts_show_details_bottom(context = {})
+      contact = context[:contact]
+      return '' unless contact
+      return '' unless User.current.admin?
+      controller = context[:controller]
+      projects = Array(contact.projects).select { |p| p.module_enabled?(:sendmail) }
+      return '' if projects.empty?
+      kennungen = {}
+      RedmineSendmailContactProjectKennung
+        .where(contact_id: contact.id, project_id: projects.map(&:id))
+        .each { |k| kennungen[k.project_id] = k.value.to_s }
+      controller.send(:render_to_string,
+                      partial: 'redmine_sendmail/contact_kennungen',
+                      locals:  { contact: contact, projects: projects, kennungen: kennungen })
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] view_contacts hook failed: #{e.class}: #{e.message}")
+      ''
     end
 
     private

@@ -235,6 +235,9 @@ module RedmineSendmail
         comment:         comment_text.presence || journal&.notes,
         settings:        settings
       )
+      kennung = RedmineSendmailContactProjectKennung.value_for(contact, project)
+      vars['kunden-projekt-kennung'] = kennung
+      vars['kunden_projekt_kennung'] = kennung
 
       subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'
       body_template    = settings['body_template'].to_s
@@ -307,6 +310,7 @@ module RedmineSendmail
       info_1, info_2 = RedmineSendmailProjectSetting.values_for(project)
       identifier     = project.identifier.to_s
       projekt_kennung = TemplateRenderer.slice_identifier(identifier, settings['project_identifier_slice'])
+      kunden_kennung  = RedmineSendmailContactProjectKennung.value_for(dispatch.contact_id, project)
       vars = {
         'recipient_email'     => dispatch.recipient_email.to_s,
         'recipient_name'      => dispatch.recipient_name.to_s,
@@ -317,7 +321,9 @@ module RedmineSendmail
         'project_info_1'      => info_1,
         'project_info_2'      => info_2,
         'project-info-1'      => info_1,
-        'project-info-2'      => info_2
+        'project-info-2'      => info_2,
+        'kunden-projekt-kennung' => kunden_kennung,
+        'kunden_projekt_kennung' => kunden_kennung
       }
 
       project_alias = resolve_project_alias(settings, project)

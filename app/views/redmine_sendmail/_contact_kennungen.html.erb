@@ -1,0 +1,34 @@
+<div class="redmine-sendmail-kennungen-block">
+  <h3><%= l(:label_sendmail_contact_kennung_section) %></h3>
+  <p class="info"><em><%= l(:label_sendmail_contact_kennung_intro) %></em></p>
+  <table class="list redmine-sendmail-kennungen-table">
+    <thead>
+      <tr>
+        <th><%= l(:field_project) %></th>
+        <th><%= l(:label_sendmail_contact_kennung_value) %></th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% projects.each do |project| %>
+        <tr>
+          <td><%= h(project.name) %></td>
+          <td>
+            <%= form_tag project_sendmail_contact_kennung_path(project, contact.id),
+                         method: :patch,
+                         class:  'redmine-sendmail-kennung-form',
+                         remote: false do %>
+              <%= text_field_tag 'value',
+                                 kennungen[project.id].to_s,
+                                 size: 30,
+                                 class: 'redmine-sendmail-kennung-input' %>
+              <%= submit_tag l(:button_save),
+                             class: 'redmine-sendmail-kennung-save' %>
+            <% end %>
+          </td>
+          <td class="redmine-sendmail-kennung-current"><code>{kunden-projekt-kennung}</code></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>

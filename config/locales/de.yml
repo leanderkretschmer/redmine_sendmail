@@ -92,3 +92,14 @@ de:
 
   notice_sendmail_resend_queued: "Erneuter Versand wurde durchgeführt."
   notice_sendmail_resend_failed: "Erneuter Versand fehlgeschlagen."
+
+  label_sendmail_recipient_search_placeholder: "Empfänger suchen…"
+  label_sendmail_save_and_send: "Speichern & Senden"
+  label_sendmail_preview_heading: "Mail-Vorschau"
+  label_sendmail_preview_send: "Senden"
+  label_sendmail_preview_edit: "Bearbeiten"
+  label_sendmail_preview_multi_note: "%{count} Empfänger ausgewählt — die Vorschau zeigt die Mail an den ersten Kontakt. Empfängerspezifische Platzhalter (z. B. {recipient_name}, {kunden-projekt-kennung}) werden pro Empfänger ersetzt."
+
+  label_sendmail_contact_kennung_section: "Mail-Versand: Kunden-Projekt-Kennung"
+  label_sendmail_contact_kennung_intro: "Pro Projekt frei belegbare Kennung dieses Kontakts. Wird beim Mail-Versand in den Vorlagen über den Platzhalter {kunden-projekt-kennung} ersetzt. Nur Admins können diese Werte ändern."
+  label_sendmail_contact_kennung_value: "Kennung"

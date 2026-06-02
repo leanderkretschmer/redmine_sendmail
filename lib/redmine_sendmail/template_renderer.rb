@@ -8,6 +8,7 @@ module RedmineSendmail
       project_name project_identifier projekt_kennung projekt-kennung
       project_info_1 project_info_2 project-info-1 project-info-2
       recipient_name recipient_email
+      kunden-projekt-kennung kunden_projekt_kennung
       custom_subject comment date
     ].freeze
 

@@ -64,6 +64,29 @@ die zugehörigen Bilder werden stattdessen als Datei-Anhang mitgeschickt.
 
 Versendete Mails werden (sofern Logging aktiviert) im Projektmenü **„Mail-Versand“** aufgelistet.
 
+## Vorschau, Versendet-Markierung, Suche
+
+* **Empfänger-Suche** &mdash; Über der Kontaktliste im Ticket-/Kommentar-Formular
+  steht ein Suchfeld, das die Liste live nach Name und E-Mail filtert.
+* **Mail-Vorschau** &mdash; Wird das Ticket oder der Kommentar mit mindestens
+  einem Empfänger gespeichert, erscheint vor dem tatsächlichen Speichern ein
+  Vorschau-Dialog: Betreff, Absender, Antwort-An und der vollständig
+  ausgefüllte Mailtext (Platzhalter ersetzt). Empfängerspezifische
+  Platzhalter (z. B. `{recipient_name}`, `{kunden-projekt-kennung}`) werden
+  in der Vorschau mit den Werten des **ersten** ausgewählten Kontakts
+  angezeigt; pro tatsächlich versendeter Mail werden die Werte des jeweiligen
+  Empfängers eingesetzt. Buttons: *Senden* (speichert + versendet),
+  *Bearbeiten* (zurück ins Formular).
+* **Speichern & Senden** &mdash; Ist mindestens ein Empfänger ausgewählt,
+  trägt der Speichern-Button des Tickets/Kommentars die Beschriftung
+  „Speichern & Senden“, ansonsten weiterhin „Speichern“.
+* **Versendet-Markierung am Ticket** &mdash; Wurde das Ticket beim Anlegen
+  als E-Mail versendet, erscheint die Empfänger-Liste auch direkt unter der
+  Ticket-Beschreibung (bisher nur unter dem jeweiligen Kommentar).
+* **Aufräumen bei Kommentar-Löschung** &mdash; Wird ein Kommentar gelöscht,
+  werden die zugehörigen Versand-Einträge mitgelöscht, sodass die
+  „Per E-Mail versendet an …“-Markierung verschwindet.
+
 ## Platzhalter
 
 `{user_name}`, `{user_login}`, `{user_firstname}`, `{user_lastname}`, `{user_email}`,
@@ -71,6 +94,8 @@ Versendete Mails werden (sofern Logging aktiviert) im Projektmenü **„Mail-Ver
 `{project_name}`, `{project_identifier}`, `{projekt-kennung}`,
 `{project_info_1}`, `{project_info_2}`,
 `{recipient_name}`, `{recipient_email}`,
+`{kunden-projekt-kennung}` (pro Kontakt × Projekt, am Kontakt unter
+*Kontakt-Detailseite → Mail-Versand: Kunden-Projekt-Kennung* pflegen — nur Admins),
 `{custom_subject}`, `{comment}`, `{date}`
 
 Die Platzhalter funktionieren in Betreff- und Body-Vorlage sowie in den Feldern

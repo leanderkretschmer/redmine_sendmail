@@ -4,6 +4,7 @@ Rails.application.config.to_prepare do
   require_dependency File.expand_path('lib/redmine_sendmail/view_hook', __dir__)
   require_dependency File.expand_path('lib/redmine_sendmail/controller_hook', __dir__)
   require_dependency File.expand_path('lib/redmine_sendmail/projects_helper_patch', __dir__)
+  require_dependency File.expand_path('lib/redmine_sendmail/journal_patch', __dir__)
   require_dependency File.expand_path('app/jobs/redmine_sendmail_dispatch_job', __dir__)
 end
 
@@ -43,7 +44,7 @@ Redmine::Plugin.register :redmine_sendmail do
 
   project_module :sendmail do
     permission :send_sendmail,
-               { redmine_sendmail_dispatches: [:index, :show] },
+               { redmine_sendmail_dispatches: [:index, :show, :preview] },
                require: :member
   end
 
