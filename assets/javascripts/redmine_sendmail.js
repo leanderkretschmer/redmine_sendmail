@@ -294,9 +294,21 @@
       if (!hostForm) { return; }
       hostForm.dataset[SENDMAIL_PREVIEW_FLAG] = '1';
       var btn = findSaveButton(hostForm);
+      // Rails UJS may have disabled the save button when it ran the first
+      // (cancelled) submit. Re-enable so a programmatic click/submit reaches
+      // the browser's form submission path.
+      if (btn && btn.disabled) { btn.disabled = false; }
+      // requestSubmit() is the standardised API: it fires the form's submit
+      // event (so our flag-aware listener can release it) and then submits.
+      if (typeof hostForm.requestSubmit === 'function') {
+        try { hostForm.requestSubmit(btn || null); return; } catch (e) { /* fall through */ }
+      }
       if (btn) {
         btn.click();
       } else {
+        // Last resort: form.submit() bypasses the submit event entirely, so
+        // also clear the flag explicitly to avoid a stuck attribute.
+        delete hostForm.dataset[SENDMAIL_PREVIEW_FLAG];
         hostForm.submit();
       }
     };
@@ -378,6 +390,13 @@
   function wirePreview(form) {
     var hostForm = findIssueForm();
     if (!hostForm) { return; }
+    // `init()` runs on DOMContentLoaded AND on every jQuery `ajax:complete`
+    // (Redmine fires many AJAX calls for sidebars). Without this guard the
+    // submit listener gets attached N times — listener #1 clears the
+    // flag, listener #2..N then see no flag and preventDefault the submit,
+    // so the "Send" button in the preview modal never actually submits.
+    if (hostForm.dataset.sendmailPreviewWired === '1') { return; }
+    hostForm.dataset.sendmailPreviewWired = '1';
     var labels = getLabels(form);
 
     hostForm.addEventListener('submit', function (event) {
@@ -397,6 +416,11 @@
   }
 
   function wireForm(form) {
+    // Same multi-init protection as wirePreview: don't double-attach the
+    // checkbox/mode-select/search/adhoc listeners.
+    if (form.dataset.sendmailWired === '1') { return; }
+    form.dataset.sendmailWired = '1';
+
     var checkboxes = form.querySelectorAll('[data-sendmail-recipient]');
     if (!checkboxes.length && !form.querySelector('[data-sendmail-adhoc]')) { return; }
 
