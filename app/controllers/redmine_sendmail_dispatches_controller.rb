@@ -68,8 +68,14 @@ class RedmineSendmailDispatchesController < ApplicationController
 
   def preview
     sm = params[:sendmail].respond_to?(:to_unsafe_h) ? params[:sendmail].to_unsafe_h : (params[:sendmail] || {}).to_h
-    contact_ids = RedmineSendmail::Dispatcher.extract_contact_ids(sm.deep_symbolize_keys)
-    if contact_ids.empty?
+    sm = sm.deep_symbolize_keys
+    user = User.current
+
+    recipients = RedmineSendmail::Dispatcher.extract_recipients(sm, @project, user)
+    to_list  = recipients[:to]
+    cc_list  = recipients[:cc]
+    bcc_list = recipients[:bcc]
+    if to_list.empty? && cc_list.empty? && bcc_list.empty?
       render json: { error: 'no_recipients' }, status: 422
       return
     end
@@ -81,15 +87,13 @@ class RedmineSendmailDispatchesController < ApplicationController
             end
     issue ||= Issue.new(project: @project, subject: params[:ticket_subject].to_s, description: params[:body].to_s)
 
-    contact = RedmineSendmail::Dispatcher.lookup_contact(contact_ids.first, @project, User.current)
-    unless contact && contact.primary_email.to_s.strip.present?
-      render json: { error: 'recipient_not_found' }, status: 422
-      return
-    end
+    first_recipient = to_list.first || cc_list.first || bcc_list.first
+    contact_for_vars = first_recipient[:contact_id] ?
+                       RedmineSendmail::Dispatcher.lookup_contact(first_recipient[:contact_id], @project, user) :
+                       nil
 
     global_settings = Setting.plugin_redmine_sendmail || {}
     settings        = RedmineSendmailProjectSetting.effective_settings(@project, global_settings)
-    user            = User.current
 
     custom_subject = params[:subject].to_s
     body_input     = params[:body].to_s
@@ -97,15 +101,16 @@ class RedmineSendmailDispatchesController < ApplicationController
     vars = RedmineSendmail::TemplateRenderer.build_vars(
       user:            user,
       issue:           issue,
-      contact:         contact,
-      recipient_email: contact.primary_email.to_s.strip,
-      recipient_name:  contact.name,
+      contact:         contact_for_vars,
+      recipient_email: first_recipient[:email],
+      recipient_name:  first_recipient[:name],
       custom_subject:  custom_subject,
       comment:         body_input,
       settings:        settings
     )
-    vars['kunden-projekt-kennung'] = RedmineSendmailContactProjectKennung.value_for(contact, @project)
-    vars['kunden_projekt_kennung'] = vars['kunden-projekt-kennung']
+    kennung = contact_for_vars ? RedmineSendmailContactProjectKennung.value_for(contact_for_vars, @project) : ''
+    vars['kunden-projekt-kennung'] = kennung
+    vars['kunden_projekt_kennung'] = kennung
 
     subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'
     body_template    = settings['body_template'].to_s
@@ -125,9 +130,11 @@ class RedmineSendmailDispatchesController < ApplicationController
       from:            from_email,
       from_name:       from_name,
       reply_to:        reply_to,
-      recipient_name:  contact.name,
-      recipient_email: contact.primary_email.to_s,
-      recipient_count: contact_ids.size
+      to_recipients:   to_list.map  { |r| public_recipient(r) },
+      cc_recipients:   cc_list.map  { |r| public_recipient(r) },
+      bcc_recipients:  bcc_list.map { |r| public_recipient(r) },
+      recipient_count: to_list.size + cc_list.size + bcc_list.size,
+      first_recipient: public_recipient(first_recipient)
     }
   rescue => e
     Rails.logger.error("[redmine_sendmail] preview failed: #{e.class}: #{e.message}\n#{e.backtrace.first(5).join("\n")}")
@@ -169,8 +176,21 @@ class RedmineSendmailDispatchesController < ApplicationController
       recipient_email:       d.recipient_email,
       subject:               d.subject,
       status:                d.status,
+      mode:                  d.mode,
+      is_adhoc:              d.is_adhoc,
       error_message:         d.error_message,
       failure_reason_detail: d.failure_reason_detail
+    }
+  end
+
+  def public_recipient(r)
+    return nil if r.blank?
+    {
+      name:       r[:name].to_s,
+      email:      r[:email].to_s,
+      mode:       r[:mode].to_s,
+      contact_id: r[:contact_id],
+      adhoc:      r[:adhoc] ? true : false
     }
   end
 end

@@ -4,9 +4,14 @@
      data-sendmail-preview-url="<%= preview_project_sendmail_dispatches_path(project) %>"
      data-sendmail-save-and-send-label="<%= l(:label_sendmail_save_and_send) %>"
      data-sendmail-label-heading="<%= l(:label_sendmail_preview_heading) %>"
+     data-sendmail-label-stage1-heading="<%= l(:label_sendmail_stage1_heading) %>"
+     data-sendmail-label-stage1-intro="<%= l(:label_sendmail_stage1_intro) %>"
+     data-sendmail-label-stage1-continue="<%= l(:label_sendmail_stage1_continue) %>"
      data-sendmail-label-subject="<%= l(:label_sendmail_subject) %>"
      data-sendmail-label-from="<%= l(:label_sendmail_from_email) %>"
-     data-sendmail-label-to="<%= l(:label_sendmail_recipient) %>"
+     data-sendmail-label-to="<%= l(:label_sendmail_mode_to) %>"
+     data-sendmail-label-cc="<%= l(:label_sendmail_mode_cc) %>"
+     data-sendmail-label-bcc="<%= l(:label_sendmail_mode_bcc) %>"
      data-sendmail-label-reply-to="<%= l(:label_sendmail_reply_to_email) %>"
      data-sendmail-label-send="<%= l(:label_sendmail_preview_send) %>"
      data-sendmail-label-edit="<%= l(:label_sendmail_preview_edit) %>"
@@ -17,35 +22,17 @@
     <div class="redmine-sendmail-fields">
       <p>
         <label><%= l(:label_sendmail_recipients) %></label>
-        <% if contacts.any? %>
-          <input type="text"
-                 class="redmine-sendmail-recipient-search"
-                 data-sendmail-recipient-search
-                 placeholder="<%= l(:label_sendmail_recipient_search_placeholder) %>"
-                 autocomplete="off">
-          <div class="redmine-sendmail-recipients" data-sendmail-recipients>
-            <% contacts.each do |c| %>
-              <label class="redmine-sendmail-recipient-item"
-                     data-sendmail-recipient-item
-                     data-search-blob="<%= h("#{c.name} #{c.primary_email}".downcase) %>">
-                <%= check_box_tag 'sendmail[contact_ids][]',
-                                  c.id,
-                                  false,
-                                  id: "sendmail_contact_#{c.id}",
-                                  data: { 'sendmail-recipient' => true,
-                                          'email' => c.primary_email,
-                                          'name'  => c.name } %>
-                <span class="redmine-sendmail-recipient-name"><%= h(c.name) %></span>
-                <span class="redmine-sendmail-recipient-email">&lt;<%= h(c.primary_email) %>&gt;</span>
-              </label>
-            <% end %>
-          </div>
-          <em class="redmine-sendmail-hint-static info"><%= l(:label_sendmail_recipients_hint) %></em>
-        <% else %>
-          <em class="redmine-sendmail-empty">
-            <%= l(:label_sendmail_no_contacts_in_project) %>
-          </em>
-        <% end %>
+        <%= render partial: 'redmine_sendmail/recipient_fields',
+                   locals: { contacts: contacts } %>
+      </p>
+      <p class="redmine-sendmail-subject" data-sendmail-subject-row style="display:none;">
+        <label for="sendmail_new_subject"><%= l(:label_sendmail_subject) %></label>
+        <%= text_field_tag 'sendmail[subject]', '',
+                           id: 'sendmail_new_subject',
+                           size: 60,
+                           placeholder: l(:label_sendmail_new_subject_placeholder),
+                           data: { 'sendmail-subject' => true } %>
+        <em class="info"><%= l(:label_sendmail_new_subject_hint) %></em>
       </p>
       <p class="redmine-sendmail-hint" data-sendmail-hint style="display:none;">
         <em><%= l(:label_sendmail_will_send_new_issue_hint) %></em>

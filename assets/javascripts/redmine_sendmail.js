@@ -13,8 +13,8 @@
     return document.querySelector('form#issue-form') ||
            document.querySelector('form.new_issue') ||
            document.querySelector('form.edit_issue') ||
-           (document.getElementById('sendmail_contact_1')
-              ? document.getElementById('sendmail_contact_1').closest('form')
+           (document.querySelector('[data-sendmail-form]')
+              ? document.querySelector('[data-sendmail-form]').closest('form')
               : null);
   }
 
@@ -55,10 +55,83 @@
     }
   }
 
+  function wireAdhoc(form) {
+    var addBtn = form.querySelector('[data-sendmail-adhoc-add]');
+    var rowsContainer = form.querySelector('[data-sendmail-adhoc-rows]');
+    var template = form.querySelector('[data-sendmail-adhoc-template]');
+    if (!addBtn || !rowsContainer || !template) { return; }
+    var counter = 0;
+
+    function addRow() {
+      var html = template.innerHTML.replace(/__IDX__/g, String(counter++));
+      var div = document.createElement('div');
+      div.innerHTML = html.trim();
+      var row = div.firstChild;
+      rowsContainer.appendChild(row);
+      var rm = row.querySelector('[data-sendmail-adhoc-remove]');
+      if (rm) {
+        rm.addEventListener('click', function () {
+          row.parentNode.removeChild(row);
+          updateAfterChange(form);
+        });
+      }
+      var inputs = row.querySelectorAll('input, select');
+      for (var i = 0; i < inputs.length; i++) {
+        inputs[i].addEventListener('input', function () { updateAfterChange(form); });
+        inputs[i].addEventListener('change', function () { updateAfterChange(form); });
+      }
+      updateAfterChange(form);
+    }
+
+    addBtn.addEventListener('click', addRow);
+  }
+
+  function updateAfterChange(form) {
+    var has = hasAnyRecipient(form);
+    var subjectRow = form.querySelector('[data-sendmail-subject-row]');
+    var subjectInput = form.querySelector('[data-sendmail-subject]');
+    var hint = form.querySelector('[data-sendmail-hint]');
+    if (subjectRow) { subjectRow.style.display = has ? '' : 'none'; }
+    if (hint) { hint.style.display = has ? '' : 'none'; }
+    if (subjectInput) {
+      if (!has) { subjectInput.value = ''; }
+    }
+    updateSaveButtonLabel(form, has);
+  }
+
+  function hasAnyRecipient(form) {
+    var anyContact = form.querySelectorAll('[data-sendmail-recipient]:checked').length > 0;
+    var adhocEmails = form.querySelectorAll('.redmine-sendmail-adhoc-email');
+    for (var i = 0; i < adhocEmails.length; i++) {
+      if (adhocEmails[i].value.trim().length > 0) { return true; }
+    }
+    return anyContact;
+  }
+
   function gatherFormState(form) {
-    var checkboxes = form.querySelectorAll('[data-sendmail-recipient]:checked');
+    var checkboxes = form.querySelectorAll('[data-sendmail-recipient]');
     var contactIds = [];
-    for (var i = 0; i < checkboxes.length; i++) { contactIds.push(checkboxes[i].value); }
+    var modes = {};
+    for (var i = 0; i < checkboxes.length; i++) {
+      if (!checkboxes[i].checked) { continue; }
+      contactIds.push(checkboxes[i].value);
+      var modeSel = form.querySelector('[data-sendmail-mode-for="' + checkboxes[i].value + '"]');
+      modes[checkboxes[i].value] = modeSel ? modeSel.value : 'to';
+    }
+
+    var adhocRows = form.querySelectorAll('[data-sendmail-adhoc-row]');
+    var adhoc = [];
+    for (var j = 0; j < adhocRows.length; j++) {
+      var emailEl = adhocRows[j].querySelector('.redmine-sendmail-adhoc-email');
+      if (!emailEl || !emailEl.value.trim()) { continue; }
+      var nameEl = adhocRows[j].querySelector('.redmine-sendmail-adhoc-name');
+      var modeEl = adhocRows[j].querySelector('.redmine-sendmail-adhoc-mode');
+      adhoc.push({
+        email: emailEl.value.trim(),
+        name:  nameEl ? nameEl.value.trim() : '',
+        mode:  modeEl ? modeEl.value : 'to'
+      });
+    }
 
     var subjectInput = form.querySelector('[data-sendmail-subject]');
     var subject = subjectInput ? subjectInput.value : '';
@@ -76,6 +149,8 @@
     }
     return {
       contactIds:    contactIds,
+      contactModes:  modes,
+      adhoc:         adhoc,
       subject:       subject,
       body:          bodyValue,
       ticketSubject: ticketSubject
@@ -89,14 +164,21 @@
       '<div id="redmine-sendmail-preview-modal" class="redmine-sendmail-preview-modal" role="dialog" aria-modal="true">' +
       '  <div class="redmine-sendmail-preview-content">' +
       '    <h3 class="redmine-sendmail-preview-heading"></h3>' +
-      '    <div class="redmine-sendmail-preview-meta"></div>' +
-      '    <div class="redmine-sendmail-preview-subject-row">' +
-      '      <strong></strong> <span class="redmine-sendmail-preview-subject"></span>' +
+      '    <div class="redmine-sendmail-preview-stage1">' +
+      '      <p class="redmine-sendmail-stage1-intro"></p>' +
+      '      <div class="redmine-sendmail-stage1-lists"></div>' +
       '    </div>' +
-      '    <pre class="redmine-sendmail-preview-body"></pre>' +
+      '    <div class="redmine-sendmail-preview-stage2" style="display:none;">' +
+      '      <div class="redmine-sendmail-preview-meta"></div>' +
+      '      <div class="redmine-sendmail-preview-subject-row">' +
+      '        <strong></strong> <span class="redmine-sendmail-preview-subject"></span>' +
+      '      </div>' +
+      '      <pre class="redmine-sendmail-preview-body"></pre>' +
+      '    </div>' +
       '    <div class="redmine-sendmail-preview-actions">' +
       '      <button type="button" class="redmine-sendmail-preview-edit"></button>' +
-      '      <button type="button" class="redmine-sendmail-preview-send"></button>' +
+      '      <button type="button" class="redmine-sendmail-preview-next"></button>' +
+      '      <button type="button" class="redmine-sendmail-preview-send" style="display:none;"></button>' +
       '    </div>' +
       '    <div class="redmine-sendmail-preview-error" style="display:none;"></div>' +
       '  </div>' +
@@ -108,10 +190,60 @@
     return modal;
   }
 
+  function renderRecipientGroup(parent, label, list) {
+    if (!list || !list.length) { return; }
+    var box = document.createElement('div');
+    box.className = 'redmine-sendmail-stage1-group';
+    var head = document.createElement('div');
+    head.className = 'redmine-sendmail-stage1-grouplabel';
+    head.textContent = label + ' (' + list.length + ')';
+    box.appendChild(head);
+    var ul = document.createElement('ul');
+    ul.className = 'redmine-sendmail-stage1-list';
+    list.forEach(function (r) {
+      var li = document.createElement('li');
+      li.className = 'redmine-sendmail-stage1-item';
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'redmine-sendmail-stage1-name';
+      nameSpan.textContent = r.name || '';
+      var emailSpan = document.createElement('span');
+      emailSpan.className = 'redmine-sendmail-stage1-email';
+      emailSpan.textContent = '<' + (r.email || '') + '>';
+      li.appendChild(nameSpan);
+      li.appendChild(document.createTextNode(' '));
+      li.appendChild(emailSpan);
+      if (r.adhoc) {
+        var b = document.createElement('span');
+        b.className = 'redmine-sendmail-stage1-adhoc';
+        b.textContent = '✎';
+        li.appendChild(document.createTextNode(' '));
+        li.appendChild(b);
+      }
+      ul.appendChild(li);
+    });
+    box.appendChild(ul);
+    parent.appendChild(box);
+  }
+
   function showModal(form, data, labels) {
     var modal = buildModal();
-    modal.querySelector('.redmine-sendmail-preview-heading').textContent = labels.heading;
-    var meta = modal.querySelector('.redmine-sendmail-preview-meta');
+    modal.querySelector('.redmine-sendmail-preview-heading').textContent = labels.stage1Heading;
+
+    // Stage 1
+    var s1 = modal.querySelector('.redmine-sendmail-preview-stage1');
+    var s2 = modal.querySelector('.redmine-sendmail-preview-stage2');
+    s1.style.display = '';
+    s2.style.display = 'none';
+    modal.querySelector('.redmine-sendmail-stage1-intro').textContent = labels.stage1Intro
+      .replace('%{count}', data.recipient_count || 0);
+    var lists = modal.querySelector('.redmine-sendmail-stage1-lists');
+    lists.innerHTML = '';
+    renderRecipientGroup(lists, labels.to,  data.to_recipients);
+    renderRecipientGroup(lists, labels.cc,  data.cc_recipients);
+    renderRecipientGroup(lists, labels.bcc, data.bcc_recipients);
+
+    // Stage 2 (pre-populate so the second click is just a reveal)
+    var meta = s2.querySelector('.redmine-sendmail-preview-meta');
     meta.innerHTML = '';
     function addRow(k, v) {
       if (v == null || v === '') { return; }
@@ -122,27 +254,40 @@
       p.appendChild(document.createTextNode(v));
       meta.appendChild(p);
     }
-    addRow(labels.to,        (data.recipient_name ? data.recipient_name + ' <' + data.recipient_email + '>' : data.recipient_email));
-    addRow(labels.from,      (data.from_name ? data.from_name + ' <' + data.from + '>' : data.from));
-    addRow(labels.replyTo,   data.reply_to);
+    var first = data.first_recipient || {};
+    addRow(labels.to,       (first.name ? first.name + ' <' + first.email + '>' : first.email));
+    addRow(labels.from,     (data.from_name ? data.from_name + ' <' + data.from + '>' : data.from));
+    addRow(labels.replyTo,  data.reply_to);
     if (data.recipient_count && data.recipient_count > 1) {
       var note = document.createElement('div');
       note.className = 'redmine-sendmail-preview-multi-note';
       note.textContent = labels.multiRecipient.replace('%{count}', data.recipient_count);
       meta.appendChild(note);
     }
-    modal.querySelector('.redmine-sendmail-preview-subject-row strong').textContent = labels.subject + ':';
-    modal.querySelector('.redmine-sendmail-preview-subject').textContent = data.subject;
-    modal.querySelector('.redmine-sendmail-preview-body').textContent = data.body;
+    s2.querySelector('.redmine-sendmail-preview-subject-row strong').textContent = labels.subject + ':';
+    s2.querySelector('.redmine-sendmail-preview-subject').textContent = data.subject;
+    s2.querySelector('.redmine-sendmail-preview-body').textContent = data.body;
     modal.querySelector('.redmine-sendmail-preview-error').style.display = 'none';
 
     var edit = modal.querySelector('.redmine-sendmail-preview-edit');
+    var next = modal.querySelector('.redmine-sendmail-preview-next');
     var send = modal.querySelector('.redmine-sendmail-preview-send');
     edit.textContent = labels.edit;
+    next.textContent = labels.stage1Continue;
+    next.style.display = '';
     send.textContent = labels.send;
+    send.style.display = 'none';
 
     function hide() { modal.classList.remove('active'); }
+
     edit.onclick = function () { hide(); };
+    next.onclick = function () {
+      s1.style.display = 'none';
+      s2.style.display = '';
+      modal.querySelector('.redmine-sendmail-preview-heading').textContent = labels.heading;
+      next.style.display = 'none';
+      send.style.display = '';
+    };
     send.onclick = function () {
       hide();
       var hostForm = findIssueForm();
@@ -161,17 +306,18 @@
   function showModalError(message, labels) {
     var modal = buildModal();
     modal.querySelector('.redmine-sendmail-preview-heading').textContent = labels.heading;
-    modal.querySelector('.redmine-sendmail-preview-meta').innerHTML = '';
-    modal.querySelector('.redmine-sendmail-preview-subject').textContent = '';
-    modal.querySelector('.redmine-sendmail-preview-body').textContent = '';
+    var s1 = modal.querySelector('.redmine-sendmail-preview-stage1');
+    var s2 = modal.querySelector('.redmine-sendmail-preview-stage2');
+    if (s1) { s1.style.display = 'none'; }
+    if (s2) { s2.style.display = 'none'; }
     var err = modal.querySelector('.redmine-sendmail-preview-error');
     err.textContent = message;
     err.style.display = '';
     modal.querySelector('.redmine-sendmail-preview-send').style.display = 'none';
+    modal.querySelector('.redmine-sendmail-preview-next').style.display = 'none';
     modal.querySelector('.redmine-sendmail-preview-edit').textContent = labels.close;
     modal.querySelector('.redmine-sendmail-preview-edit').onclick = function () {
       modal.classList.remove('active');
-      modal.querySelector('.redmine-sendmail-preview-send').style.display = '';
     };
     modal.classList.add('active');
   }
@@ -182,15 +328,20 @@
 
   function getLabels(form) {
     return {
-      heading:        form.getAttribute('data-sendmail-label-heading')   || 'Mail preview',
-      subject:        form.getAttribute('data-sendmail-label-subject')   || 'Subject',
-      from:           form.getAttribute('data-sendmail-label-from')      || 'From',
-      to:             form.getAttribute('data-sendmail-label-to')        || 'To',
-      replyTo:        form.getAttribute('data-sendmail-label-reply-to')  || 'Reply-To',
-      send:           form.getAttribute('data-sendmail-label-send')      || 'Send',
-      edit:           form.getAttribute('data-sendmail-label-edit')      || 'Edit',
-      close:          form.getAttribute('data-sendmail-label-close')     || 'Close',
-      multiRecipient: form.getAttribute('data-sendmail-label-multi')     || '%{count} recipients — preview shows the first.'
+      heading:        form.getAttribute('data-sendmail-label-heading')         || 'Mail preview',
+      stage1Heading:  form.getAttribute('data-sendmail-label-stage1-heading')  || 'Confirm recipients',
+      stage1Intro:    form.getAttribute('data-sendmail-label-stage1-intro')    || 'You are about to send mail to %{count} recipients. Please verify:',
+      stage1Continue: form.getAttribute('data-sendmail-label-stage1-continue') || 'Continue to preview',
+      subject:        form.getAttribute('data-sendmail-label-subject')         || 'Subject',
+      from:           form.getAttribute('data-sendmail-label-from')            || 'From',
+      to:             form.getAttribute('data-sendmail-label-to')              || 'TO',
+      cc:             form.getAttribute('data-sendmail-label-cc')              || 'CC',
+      bcc:            form.getAttribute('data-sendmail-label-bcc')             || 'BCC',
+      replyTo:        form.getAttribute('data-sendmail-label-reply-to')        || 'Reply-To',
+      send:           form.getAttribute('data-sendmail-label-send')            || 'Send',
+      edit:           form.getAttribute('data-sendmail-label-edit')            || 'Edit',
+      close:          form.getAttribute('data-sendmail-label-close')           || 'Close',
+      multiRecipient: form.getAttribute('data-sendmail-label-multi')           || '%{count} recipients — preview shows the first.'
     };
   }
 
@@ -199,6 +350,14 @@
     if (!url) { return Promise.reject(new Error('no_preview_url')); }
     var fd = new FormData();
     state.contactIds.forEach(function (id) { fd.append('sendmail[contact_ids][]', id); });
+    Object.keys(state.contactModes).forEach(function (id) {
+      fd.append('sendmail[contact_modes][' + id + ']', state.contactModes[id]);
+    });
+    state.adhoc.forEach(function (row, i) {
+      fd.append('sendmail[adhoc][' + i + '][email]', row.email);
+      fd.append('sendmail[adhoc][' + i + '][name]',  row.name);
+      fd.append('sendmail[adhoc][' + i + '][mode]',  row.mode);
+    });
     fd.append('sendmail[subject]', state.subject || '');
     fd.append('subject', state.subject || '');
     fd.append('body', state.body || '');
@@ -227,7 +386,7 @@
         return;
       }
       var state = gatherFormState(form);
-      if (state.contactIds.length === 0) { return; }
+      if (state.contactIds.length === 0 && state.adhoc.length === 0) { return; }
       event.preventDefault();
       requestPreview(form, state).then(function (data) {
         showModal(form, data, labels);
@@ -239,39 +398,23 @@
 
   function wireForm(form) {
     var checkboxes = form.querySelectorAll('[data-sendmail-recipient]');
-    var subjectRow = form.querySelector('[data-sendmail-subject-row]');
-    var subjectInput = form.querySelector('[data-sendmail-subject]');
-    var hint = form.querySelector('[data-sendmail-hint]');
-    if (!checkboxes.length) { return; }
-
-    function anyChecked() {
-      for (var i = 0; i < checkboxes.length; i++) {
-        if (checkboxes[i].checked) { return true; }
-      }
-      return false;
-    }
-
-    function update() {
-      var visible = anyChecked();
-      if (subjectRow) { subjectRow.style.display = visible ? '' : 'none'; }
-      if (hint) { hint.style.display = visible ? '' : 'none'; }
-      if (subjectInput) {
-        if (visible) {
-          subjectInput.required = true;
-        } else {
-          subjectInput.required = false;
-          subjectInput.value = '';
-        }
-      }
-      updateSaveButtonLabel(form, visible);
-    }
+    if (!checkboxes.length && !form.querySelector('[data-sendmail-adhoc]')) { return; }
 
     for (var i = 0; i < checkboxes.length; i++) {
-      checkboxes[i].addEventListener('change', update);
+      checkboxes[i].addEventListener('change', function () { updateAfterChange(form); });
     }
-    update();
+    var modeSelects = form.querySelectorAll('.redmine-sendmail-recipient-mode');
+    for (var j = 0; j < modeSelects.length; j++) {
+      modeSelects[j].addEventListener('change', function (e) {
+        var cid = e.target.getAttribute('data-sendmail-mode-for');
+        var cb  = form.querySelector('#sendmail_contact_' + cid);
+        if (cb && !cb.checked) { cb.checked = true; updateAfterChange(form); }
+      });
+    }
     wireSearch(form);
+    wireAdhoc(form);
     wirePreview(form);
+    updateAfterChange(form);
   }
 
   function initRecipientForm() {

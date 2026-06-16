@@ -64,20 +64,32 @@ die zugehörigen Bilder werden stattdessen als Datei-Anhang mitgeschickt.
 
 Versendete Mails werden (sofern Logging aktiviert) im Projektmenü **„Mail-Versand“** aufgelistet.
 
-## Vorschau, Versendet-Markierung, Suche
+## Empfängerauswahl, CC/BCC, freie Adressen
 
 * **Empfänger-Suche** &mdash; Über der Kontaktliste im Ticket-/Kommentar-Formular
   steht ein Suchfeld, das die Liste live nach Name und E-Mail filtert.
-* **Mail-Vorschau** &mdash; Wird das Ticket oder der Kommentar mit mindestens
-  einem Empfänger gespeichert, erscheint vor dem tatsächlichen Speichern ein
-  Vorschau-Dialog: Betreff, Absender, Antwort-An und der vollständig
-  ausgefüllte Mailtext (Platzhalter ersetzt). Empfängerspezifische
-  Platzhalter (z. B. `{recipient_name}`, `{kunden-projekt-kennung}`) werden
-  in der Vorschau mit den Werten des **ersten** ausgewählten Kontakts
-  angezeigt; pro tatsächlich versendeter Mail werden die Werte des jeweiligen
-  Empfängers eingesetzt. Buttons: *Senden* (speichert + versendet),
-  *Bearbeiten* (zurück ins Formular).
-* **Speichern & Senden** &mdash; Ist mindestens ein Empfänger ausgewählt,
+* **TO / CC / BCC** &mdash; Pro Kontakt wählt ein kleines Dropdown, ob er als
+  TO-, CC- oder BCC-Empfänger angeschrieben wird. Standard ist *TO*.
+* **Frei eintragbare Empfänger** &mdash; Unterhalb der Kontaktliste lassen
+  sich beliebig viele Adressen eintragen, die nicht im Kontaktverzeichnis
+  stehen; jede Zeile hat ebenfalls eine TO/CC/BCC-Auswahl, optionalen Namen
+  und die E-Mail-Adresse. Diese Empfänger werden im Versand-Log mit einem
+  Symbol als „ad-hoc“ markiert.
+* **Eigener Betreff schon beim Anlegen eines Tickets** &mdash; Ist mindestens
+  ein Empfänger gewählt, erscheint im Neu-Ticket-Formular auch ein
+  optionales Betreff-Feld. Leer bleiben = Ticket-Titel wird als Betreff
+  verwendet (bisheriges Verhalten).
+
+## Zwei-Stufen-Bestätigung, Vorschau, Versendet-Markierung
+
+* **Zwei-Stufen-Bestätigung** &mdash; Nach „Speichern & Senden“ erscheint
+  zunächst eine **Empfänger-Bestätigung** mit TO-, CC- und BCC-Liste
+  (Name und E-Mail-Adresse je Eintrag). Erst nach Klick auf *Weiter zur
+  Vorschau* wird die Mail-Vorschau (Betreff, Absender, Antwort-An, Text)
+  gezeigt. Erst der Klick auf *Senden* in der Vorschau löst den Versand
+  tatsächlich aus.  Dazwischen ist *Bearbeiten* möglich, um zurück ins
+  Formular zu gelangen.
+* **Speichern & Senden** &mdash; Ist mindestens ein Empfänger gewählt,
   trägt der Speichern-Button des Tickets/Kommentars die Beschriftung
   „Speichern & Senden“, ansonsten weiterhin „Speichern“.
 * **Versendet-Markierung am Ticket** &mdash; Wurde das Ticket beim Anlegen
@@ -86,6 +98,12 @@ Versendete Mails werden (sofern Logging aktiviert) im Projektmenü **„Mail-Ver
 * **Aufräumen bei Kommentar-Löschung** &mdash; Wird ein Kommentar gelöscht,
   werden die zugehörigen Versand-Einträge mitgelöscht, sodass die
   „Per E-Mail versendet an …“-Markierung verschwindet.
+
+Hinweis zum Mehrfachversand: Bei **mehreren TO-Empfängern** wird pro TO eine
+eigene personalisierte Mail erzeugt (mit den jeweils richtigen Platzhalter-Werten);
+CC- und BCC-Empfänger erhalten dabei eine Kopie jeder dieser Mails. Jeder
+Empfänger wird einzeln im Mail-Versand-Log mit seinem Typ (TO/CC/BCC)
+protokolliert.
 
 ## Platzhalter
 

@@ -10,6 +10,7 @@ class RedmineSendmailDispatch < ApplicationRecord
                               format: { with: /\A[^@\s]+@[^@\s]+\z/ }
   validates :subject, presence: true
   validates :status, inclusion: { in: %w[sent failed] }
+  validates :mode, inclusion: { in: %w[to cc bcc] }
 
   scope :for_project, ->(project) { where(project_id: project.id) }
   scope :latest_first, -> { order(created_at: :desc) }

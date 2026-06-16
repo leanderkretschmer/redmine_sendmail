@@ -1,0 +1,77 @@
+<%# Renders the recipient picker shared by the new-issue and notes forms.
+
+     Each contact row carries a hidden checkbox (for backwards-compat naming
+     `sendmail[contact_ids][]`) plus a small TO/CC/BCC mode select. Ad-hoc
+     recipients live in a dynamic list that the JS extends client-side. %>
+<% if contacts.any? %>
+  <input type="text"
+         class="redmine-sendmail-recipient-search"
+         data-sendmail-recipient-search
+         placeholder="<%= l(:label_sendmail_recipient_search_placeholder) %>"
+         autocomplete="off">
+  <div class="redmine-sendmail-recipients" data-sendmail-recipients>
+    <% contacts.each do |c| %>
+      <div class="redmine-sendmail-recipient-item"
+           data-sendmail-recipient-item
+           data-search-blob="<%= h("#{c.name} #{c.primary_email}".downcase) %>">
+        <%= check_box_tag 'sendmail[contact_ids][]',
+                          c.id,
+                          false,
+                          id: "sendmail_contact_#{c.id}",
+                          class: 'redmine-sendmail-recipient-toggle',
+                          data: { 'sendmail-recipient' => true,
+                                  'email' => c.primary_email,
+                                  'name'  => c.name } %>
+        <%= select_tag "sendmail[contact_modes][#{c.id}]",
+                       options_for_select([
+                         [l(:label_sendmail_mode_to),  'to'],
+                         [l(:label_sendmail_mode_cc),  'cc'],
+                         [l(:label_sendmail_mode_bcc), 'bcc']
+                       ], 'to'),
+                       class: 'redmine-sendmail-recipient-mode',
+                       data: { 'sendmail-mode-for' => c.id } %>
+        <label for="sendmail_contact_<%= c.id %>"
+               class="redmine-sendmail-recipient-label">
+          <span class="redmine-sendmail-recipient-name"><%= h(c.name) %></span>
+          <span class="redmine-sendmail-recipient-email">&lt;<%= h(c.primary_email) %>&gt;</span>
+        </label>
+      </div>
+    <% end %>
+  </div>
+  <em class="redmine-sendmail-hint-static info"><%= l(:label_sendmail_recipients_hint) %></em>
+<% else %>
+  <em class="redmine-sendmail-empty">
+    <%= l(:label_sendmail_no_contacts_in_project) %>
+  </em>
+<% end %>
+
+<div class="redmine-sendmail-adhoc-block" data-sendmail-adhoc>
+  <p class="redmine-sendmail-adhoc-header">
+    <label><%= l(:label_sendmail_adhoc_section) %></label>
+    <em class="info"><%= l(:label_sendmail_adhoc_hint) %></em>
+  </p>
+  <div class="redmine-sendmail-adhoc-rows" data-sendmail-adhoc-rows></div>
+  <button type="button"
+          class="redmine-sendmail-adhoc-add"
+          data-sendmail-adhoc-add>
+    + <%= l(:label_sendmail_adhoc_add) %>
+  </button>
+  <template data-sendmail-adhoc-template>
+    <div class="redmine-sendmail-adhoc-row" data-sendmail-adhoc-row>
+      <select name="sendmail[adhoc][__IDX__][mode]" class="redmine-sendmail-adhoc-mode">
+        <option value="to"  selected><%= l(:label_sendmail_mode_to) %></option>
+        <option value="cc"><%= l(:label_sendmail_mode_cc) %></option>
+        <option value="bcc"><%= l(:label_sendmail_mode_bcc) %></option>
+      </select>
+      <input type="text" name="sendmail[adhoc][__IDX__][name]"
+             class="redmine-sendmail-adhoc-name"
+             placeholder="<%= l(:label_sendmail_adhoc_name_placeholder) %>">
+      <input type="email" name="sendmail[adhoc][__IDX__][email]"
+             class="redmine-sendmail-adhoc-email"
+             placeholder="<%= l(:label_sendmail_adhoc_email_placeholder) %>">
+      <button type="button" class="redmine-sendmail-adhoc-remove"
+              data-sendmail-adhoc-remove
+              title="<%= l(:button_delete) %>">&times;</button>
+    </div>
+  </template>
+</div>

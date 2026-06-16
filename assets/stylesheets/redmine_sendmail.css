@@ -294,6 +294,155 @@
   color: #7a1f1f;
 }
 
+/* Recipient row: mode dropdown */
+.redmine-sendmail-recipient-item {
+  display: block;
+  padding: 0.15em 0;
+  white-space: nowrap;
+}
+
+.redmine-sendmail-recipient-mode {
+  width: 4.5em;
+  margin: 0 0.3em 0 0.2em;
+  vertical-align: middle;
+}
+
+.redmine-sendmail-recipient-label {
+  display: inline;
+  margin: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+/* Ad-hoc recipient block */
+.redmine-sendmail-adhoc-block {
+  margin-top: 0.6em;
+  padding: 0.4em 0.6em;
+  background: #fafafa;
+  border: 1px dashed #ccc;
+  border-radius: 3px;
+}
+
+.redmine-sendmail-adhoc-header {
+  margin: 0 0 0.3em 0;
+}
+
+.redmine-sendmail-adhoc-row {
+  display: flex;
+  gap: 0.4em;
+  align-items: center;
+  margin-bottom: 0.3em;
+}
+
+.redmine-sendmail-adhoc-mode {
+  width: 4.5em;
+}
+
+.redmine-sendmail-adhoc-name {
+  flex: 1 1 35%;
+  min-width: 8em;
+}
+
+.redmine-sendmail-adhoc-email {
+  flex: 1 1 45%;
+  min-width: 10em;
+}
+
+.redmine-sendmail-adhoc-remove {
+  background: #c4c4c4;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 1.6em;
+  height: 1.6em;
+  line-height: 1.6em;
+  text-align: center;
+  cursor: pointer;
+  padding: 0;
+}
+
+.redmine-sendmail-adhoc-add {
+  background: #1a7f37;
+  color: #fff;
+  border: none;
+  padding: 0.3em 0.7em;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.redmine-sendmail-adhoc-tag {
+  display: inline-block;
+  margin-left: 0.2em;
+  color: #ad6800;
+  font-weight: bold;
+}
+
+/* Mode badges in dispatch log */
+.redmine-sendmail-mode {
+  display: inline-block;
+  padding: 0.05em 0.5em;
+  border-radius: 3px;
+  font-size: 0.85em;
+  font-weight: bold;
+}
+
+.redmine-sendmail-mode-to  { background: #d1e7ff; color: #0b50a8; }
+.redmine-sendmail-mode-cc  { background: #fff3bf; color: #7a5b00; }
+.redmine-sendmail-mode-bcc { background: #ffd6d6; color: #8a1414; }
+
+/* Stage 1 recipient confirmation list */
+.redmine-sendmail-stage1-intro {
+  margin-bottom: 0.8em;
+  font-weight: 500;
+}
+
+.redmine-sendmail-stage1-group {
+  margin-bottom: 0.8em;
+  padding: 0.4em 0.6em;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: #fafafa;
+}
+
+.redmine-sendmail-stage1-grouplabel {
+  font-weight: bold;
+  margin-bottom: 0.3em;
+}
+
+.redmine-sendmail-stage1-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.redmine-sendmail-stage1-item {
+  padding: 0.15em 0;
+}
+
+.redmine-sendmail-stage1-name {
+  font-weight: bold;
+}
+
+.redmine-sendmail-stage1-email {
+  color: #555;
+}
+
+.redmine-sendmail-stage1-adhoc {
+  margin-left: 0.3em;
+  color: #ad6800;
+  font-weight: bold;
+}
+
+.redmine-sendmail-preview-actions button.redmine-sendmail-preview-next {
+  background: #1a7f37;
+  border-color: #1a7f37;
+  color: #fff;
+}
+
+.redmine-sendmail-preview-actions button.redmine-sendmail-preview-next:hover {
+  background: #166c2e;
+}
+
 /* Contact-page per-project kennung table */
 .redmine-sendmail-kennungen-block {
   margin-top: 1.2em;

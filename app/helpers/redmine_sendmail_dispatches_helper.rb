@@ -9,6 +9,14 @@ module RedmineSendmailDispatchesHelper
     translated.presence
   end
 
+  def sendmail_mode_label(dispatch)
+    mode = dispatch.respond_to?(:mode) ? dispatch.mode.to_s : 'to'
+    key  = "label_sendmail_mode_#{mode.presence || 'to'}"
+    content_tag(:span, l(key.to_sym, default: mode.upcase),
+                class:   "redmine-sendmail-mode redmine-sendmail-mode-#{mode.presence || 'to'}",
+                title:   l(:label_sendmail_mode_tooltip, default: ''))
+  end
+
   def sendmail_status_cell(dispatch)
     if dispatch.sent?
       content_tag(:span, l(:label_sendmail_status_sent), class: 'redmine-sendmail-status sent')

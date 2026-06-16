@@ -103,3 +103,23 @@ en:
   label_sendmail_contact_kennung_section: "Mail dispatch: customer-project identifier"
   label_sendmail_contact_kennung_intro: "Per-project free-form identifier of this contact. Replaces the placeholder {kunden-projekt-kennung} in mail templates at send time. Only admins can edit these values."
   label_sendmail_contact_kennung_value: "Identifier"
+
+  label_sendmail_mode: "Recipient type"
+  label_sendmail_mode_to: "TO"
+  label_sendmail_mode_cc: "CC"
+  label_sendmail_mode_bcc: "BCC"
+  label_sendmail_mode_tooltip: "TO = primary recipient, CC = copy visible to all, BCC = blind copy."
+
+  label_sendmail_adhoc_section: "Additional recipients (not in the contact list)"
+  label_sendmail_adhoc_hint: "Free-form recipients. One per row: type (TO/CC/BCC), name (optional) and e-mail address."
+  label_sendmail_adhoc_add: "Add recipient"
+  label_sendmail_adhoc_name_placeholder: "Name (optional)"
+  label_sendmail_adhoc_email_placeholder: "name@example.com"
+  label_sendmail_adhoc_tag: "Free-form recipient (not in the contact list)"
+
+  label_sendmail_new_subject_placeholder: "Subject (ticket id is added automatically)"
+  label_sendmail_new_subject_hint: "Optional. Leave empty to use the ticket title as the subject."
+
+  label_sendmail_stage1_heading: "Confirm recipients"
+  label_sendmail_stage1_intro: "You are about to send mail to %{count} recipients. Please verify:"
+  label_sendmail_stage1_continue: "Continue to preview"

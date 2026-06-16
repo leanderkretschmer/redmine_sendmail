@@ -11,10 +11,13 @@ module RedmineSendmail
       return [] if params.blank?
       return [] unless journal && journal.notes.present?
 
-      contact_ids = extract_contact_ids(params)
-      Rails.logger.info("[redmine_sendmail] dispatcher: journal ##{journal.id} got #{contact_ids.size} recipient id(s): #{contact_ids.inspect}")
-      if contact_ids.empty?
-        Rails.logger.info("[redmine_sendmail] dispatcher: no contacts selected for journal ##{journal.id}")
+      recipients = extract_recipients(params, journal.journalized&.project, journal.user || User.current)
+      to_list  = recipients[:to]
+      cc_list  = recipients[:cc]
+      bcc_list = recipients[:bcc]
+      Rails.logger.info("[redmine_sendmail] dispatcher: journal ##{journal.id} TO=#{to_list.size} CC=#{cc_list.size} BCC=#{bcc_list.size}")
+      if to_list.empty? && cc_list.empty? && bcc_list.empty?
+        Rails.logger.info("[redmine_sendmail] dispatcher: no recipients selected for journal ##{journal.id}")
         return []
       end
 
@@ -30,22 +33,22 @@ module RedmineSendmail
       attachments      = collect_attachments(journal: journal, issue: issue, attachment_params: attachment_params)
       attachments_data = build_attachments_data(attachments)
       cleaned_notes    = strip_inline_image_refs(journal.notes.to_s, attachments)
-      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
+      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
 
-      contact_ids.map do |cid|
-        dispatch_one(
-          issue:            issue,
-          project:          project,
-          journal:          journal,
-          user:             user,
-          contact_id:       cid,
-          custom_subject:   custom_subject,
-          settings:         settings,
-          smtp_config:      smtp_config,
-          attachments_data: attachments_data,
-          comment_text:     cleaned_notes
-        )
-      end.compact
+      dispatch_recipients(
+        issue:            issue,
+        project:          project,
+        journal:          journal,
+        user:             user,
+        custom_subject:   custom_subject,
+        comment_text:     cleaned_notes,
+        settings:         settings,
+        smtp_config:      smtp_config,
+        attachments_data: attachments_data,
+        to_list:          to_list,
+        cc_list:          cc_list,
+        bcc_list:         bcc_list
+      )
     end
 
     # Sends a freshly created issue as an e-mail: the issue subject becomes the
@@ -56,10 +59,13 @@ module RedmineSendmail
       return [] if params.blank?
       return [] unless issue
 
-      contact_ids = extract_contact_ids(params)
-      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id} got #{contact_ids.size} recipient id(s): #{contact_ids.inspect}")
-      if contact_ids.empty?
-        Rails.logger.info("[redmine_sendmail] dispatcher: no contacts selected for issue ##{issue.id}")
+      recipients = extract_recipients(params, issue.project, issue.author || User.current)
+      to_list  = recipients[:to]
+      cc_list  = recipients[:cc]
+      bcc_list = recipients[:bcc]
+      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id} TO=#{to_list.size} CC=#{cc_list.size} BCC=#{bcc_list.size}")
+      if to_list.empty? && cc_list.empty? && bcc_list.empty?
+        Rails.logger.info("[redmine_sendmail] dispatcher: no recipients selected for issue ##{issue.id}")
         return []
       end
 
@@ -73,22 +79,72 @@ module RedmineSendmail
       attachments      = collect_issue_attachments(issue, attachment_params)
       attachments_data = build_attachments_data(attachments)
       cleaned_body     = strip_inline_image_refs(issue.description.to_s, attachments)
-      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id}; SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{contact_ids.size} recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
+      custom_subject   = params[:subject].to_s.strip.presence || issue.subject.to_s
+      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id}; SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
 
-      contact_ids.map do |cid|
-        dispatch_one(
+      dispatch_recipients(
+        issue:            issue,
+        project:          project,
+        journal:          nil,
+        user:             user,
+        custom_subject:   custom_subject,
+        comment_text:     cleaned_body,
+        settings:         settings,
+        smtp_config:      smtp_config,
+        attachments_data: attachments_data,
+        to_list:          to_list,
+        cc_list:          cc_list,
+        bcc_list:         bcc_list
+      )
+    end
+
+    # Iterates the TO list and sends one personalised mail per TO recipient;
+    # each mail carries the configured CC/BCC list. If no TO recipient exists
+    # (CC/BCC only), one mail is built from the first CC/BCC entry just so the
+    # SMTP envelope has a `To:` header.
+    def dispatch_recipients(issue:, project:, journal:, user:, custom_subject:, comment_text:, settings:, smtp_config:, attachments_data:, to_list:, cc_list:, bcc_list:)
+      records = []
+      effective_to = to_list.any? ? to_list : Array(cc_list.first || bcc_list.first)
+      cc_for_send  = (to_list.any? ? cc_list  : cc_list.drop(to_list.empty? && cc_list.any?  ? 1 : 0))
+      bcc_for_send = (to_list.any? ? bcc_list : (to_list.empty? && cc_list.empty? ? bcc_list.drop(1) : bcc_list))
+
+      effective_to.each do |recipient|
+        records << dispatch_one(
           issue:            issue,
           project:          project,
-          journal:          nil,
+          journal:          journal,
           user:             user,
-          contact_id:       cid,
-          custom_subject:   issue.subject.to_s,
+          recipient:        recipient,
+          mode:             recipient[:mode] || 'to',
+          custom_subject:   custom_subject,
           settings:         settings,
           smtp_config:      smtp_config,
           attachments_data: attachments_data,
-          comment_text:     cleaned_body
+          comment_text:     comment_text,
+          cc_recipients:    cc_for_send,
+          bcc_recipients:   bcc_for_send
         )
-      end.compact
+      end
+
+      # Log CC/BCC recipients separately so the project log shows every recipient
+      # individually with its mode — even though they share the same physical
+      # mail with the TO recipient.
+      cc_for_send.each do |r|
+        records << log_recipient(issue: issue, project: project, journal: journal,
+                                 user: user, recipient: r, mode: 'cc',
+                                 subject: records.first&.subject || custom_subject,
+                                 body: records.first&.body || comment_text,
+                                 settings: settings)
+      end
+      bcc_for_send.each do |r|
+        records << log_recipient(issue: issue, project: project, journal: journal,
+                                 user: user, recipient: r, mode: 'bcc',
+                                 subject: records.first&.subject || custom_subject,
+                                 body: records.first&.body || comment_text,
+                                 settings: settings)
+      end
+
+      records.compact
     end
 
     def build_attachments_data(attachments)
@@ -212,18 +268,99 @@ module RedmineSendmail
       ids.map { |v| v.to_s.strip }.reject(&:blank?).uniq
     end
 
-    def dispatch_one(issue:, project:, journal:, user:, contact_id:, custom_subject:, settings:, smtp_config:, attachments_data: [], comment_text: nil)
-      contact = lookup_contact(contact_id, project, user)
-      unless contact
-        Rails.logger.warn("[redmine_sendmail] contact ##{contact_id} not found / not visible — skipping")
-        return nil
+    EMAIL_RE = /\A[^@\s]+@[^@\s]+\z/
+
+    # Resolves the recipient list submitted from the form into structured
+    # entries grouped by mode. Each entry is a hash:
+    #   { contact_id: Integer|nil, name: String, email: String,
+    #     mode: 'to'|'cc'|'bcc', adhoc: Boolean }
+    #
+    # `params` is the symbol-keyed Hash sent under `sendmail[...]`. It honours
+    # the legacy `contact_ids` array (mode='to'), the per-contact mode map
+    # under `contact_modes`, and the ad-hoc list under `adhoc`.
+    def extract_recipients(params, project, user)
+      contact_ids = extract_contact_ids(params)
+      modes       = params[:contact_modes] || params['contact_modes'] || {}
+      modes       = modes.to_unsafe_h if modes.respond_to?(:to_unsafe_h)
+      modes       = modes.to_h        if modes.respond_to?(:to_h) && !modes.is_a?(Hash)
+
+      to_list  = []
+      cc_list  = []
+      bcc_list = []
+
+      contact_ids.each do |cid|
+        contact = lookup_contact(cid, project, user)
+        next unless contact
+        email = contact.primary_email.to_s.strip
+        next if email.blank?
+        mode = normalize_mode(modes[cid] || modes[cid.to_s] || modes[cid.to_sym])
+        entry = {
+          contact_id: contact.id,
+          name:       contact.name.to_s,
+          email:      email,
+          mode:       mode,
+          adhoc:      false
+        }
+        case mode
+        when 'cc'  then cc_list << entry
+        when 'bcc' then bcc_list << entry
+        else
+          entry[:mode] = 'to'
+          to_list << entry
+        end
       end
-      recipient_email = contact.primary_email.to_s.strip
+
+      Array(params[:adhoc] || params['adhoc']).each_with_index do |row, _|
+        row = row.last if row.is_a?(Array) # `adhoc[0][...]` form yields [key, value]
+        next unless row.is_a?(Hash)
+        email = (row[:email] || row['email']).to_s.strip
+        next unless email =~ EMAIL_RE
+        name  = (row[:name] || row['name']).to_s.strip
+        mode  = normalize_mode(row[:mode] || row['mode'])
+        entry = {
+          contact_id: nil,
+          name:       name,
+          email:      email,
+          mode:       mode,
+          adhoc:      true
+        }
+        case mode
+        when 'cc'  then cc_list << entry
+        when 'bcc' then bcc_list << entry
+        else
+          entry[:mode] = 'to'
+          to_list << entry
+        end
+      end
+
+      { to: dedupe_by_email(to_list),
+        cc: dedupe_by_email(cc_list),
+        bcc: dedupe_by_email(bcc_list) }
+    end
+
+    def normalize_mode(value)
+      v = value.to_s.downcase.strip
+      return v if %w[to cc bcc].include?(v)
+      'to'
+    end
+
+    def dedupe_by_email(list)
+      seen = {}
+      list.each do |entry|
+        key = entry[:email].downcase
+        seen[key] ||= entry
+      end
+      seen.values
+    end
+
+    def dispatch_one(issue:, project:, journal:, user:, recipient:, mode: 'to', custom_subject:, settings:, smtp_config:, attachments_data: [], comment_text: nil, cc_recipients: [], bcc_recipients: [])
+      recipient_email = recipient[:email].to_s.strip
       if recipient_email.blank?
-        Rails.logger.warn("[redmine_sendmail] contact ##{contact_id} (#{contact.name}) has no e-mail — skipping")
+        Rails.logger.warn("[redmine_sendmail] dispatch_one: blank recipient email — skipping")
         return nil
       end
-      recipient_name = contact.name
+      recipient_name = recipient[:name].to_s
+      contact = recipient[:contact_id] ? lookup_contact(recipient[:contact_id], project, user) : nil
 
       vars = TemplateRenderer.build_vars(
         user:            user,
@@ -235,7 +372,7 @@ module RedmineSendmail
         comment:         comment_text.presence || journal&.notes,
         settings:        settings
       )
-      kennung = RedmineSendmailContactProjectKennung.value_for(contact, project)
+      kennung = contact ? RedmineSendmailContactProjectKennung.value_for(contact, project) : ''
       vars['kunden-projekt-kennung'] = kennung
       vars['kunden_projekt_kennung'] = kennung
 
@@ -255,15 +392,17 @@ module RedmineSendmail
         journal_id:      journal&.id,
         project_id:      project.id,
         user_id:         user.id,
-        contact_id:      contact.id,
+        contact_id:      recipient[:contact_id],
         recipient_email: recipient_email,
         recipient_name:  recipient_name,
         subject:         subject.first(998),
         body:            body,
-        status:          'sent'
+        status:          'sent',
+        mode:            mode,
+        is_adhoc:        recipient[:adhoc] ? true : false
       )
 
-      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} (issue ##{issue.id}, journal ##{journal&.id || '-'}, contact ##{contact.id}, from=#{from_email.inspect}, from_name=#{from_name.inspect}, reply_to=#{reply_to.inspect}, attachments=#{attachments_data.size})")
+      Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} mode=#{mode} (issue ##{issue.id}, journal ##{journal&.id || '-'}, contact ##{recipient[:contact_id] || '-'}, from=#{from_email.inspect}, from_name=#{from_name.inspect}, reply_to=#{reply_to.inspect}, cc=#{cc_recipients.size}, bcc=#{bcc_recipients.size}, attachments=#{attachments_data.size})")
       begin
         delivered = RedmineSendmailMailer.dispatch(
           subject:          subject,
@@ -273,6 +412,8 @@ module RedmineSendmail
           from_email:       from_email,
           from_name:        from_name,
           reply_to:         reply_to,
+          cc:               cc_recipients,
+          bcc:              bcc_recipients,
           extra_headers:    { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
           smtp_config:      smtp_config,
           attachments_data: attachments_data
@@ -286,6 +427,30 @@ module RedmineSendmail
       end
 
       record.save if settings['log_dispatches'].to_s == '1' || record.status == 'failed'
+      record
+    end
+
+    # Persists a log row for a recipient that shares an already-sent mail
+    # (i.e. CC or BCC of the TO mail). The mail is NOT re-delivered — this
+    # only records the recipient in the dispatch log so the per-project
+    # overview shows every addressee individually.
+    def log_recipient(issue:, project:, journal:, user:, recipient:, mode:, subject:, body:, settings:)
+      return nil unless settings['log_dispatches'].to_s == '1'
+      record = RedmineSendmailDispatch.new(
+        issue_id:        issue.id,
+        journal_id:      journal&.id,
+        project_id:      project.id,
+        user_id:         user.id,
+        contact_id:      recipient[:contact_id],
+        recipient_email: recipient[:email].to_s,
+        recipient_name:  recipient[:name].to_s,
+        subject:         subject.to_s.first(998),
+        body:            body.to_s,
+        status:          'sent',
+        mode:            mode,
+        is_adhoc:        recipient[:adhoc] ? true : false
+      )
+      record.save
       record
     end
 

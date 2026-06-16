@@ -103,3 +103,23 @@ de:
   label_sendmail_contact_kennung_section: "Mail-Versand: Kunden-Projekt-Kennung"
   label_sendmail_contact_kennung_intro: "Pro Projekt frei belegbare Kennung dieses Kontakts. Wird beim Mail-Versand in den Vorlagen über den Platzhalter {kunden-projekt-kennung} ersetzt. Nur Admins können diese Werte ändern."
   label_sendmail_contact_kennung_value: "Kennung"
+
+  label_sendmail_mode: "Empfänger-Typ"
+  label_sendmail_mode_to: "An"
+  label_sendmail_mode_cc: "CC"
+  label_sendmail_mode_bcc: "BCC"
+  label_sendmail_mode_tooltip: "An = Hauptempfänger, CC = Kopie sichtbar für alle, BCC = Kopie unsichtbar."
+
+  label_sendmail_adhoc_section: "Zusätzliche Empfänger (nicht aus den Kontakten)"
+  label_sendmail_adhoc_hint: "Frei eintragbare Empfänger. Pro Zeile: Typ (An/CC/BCC), Name (optional) und E-Mail-Adresse."
+  label_sendmail_adhoc_add: "Empfänger hinzufügen"
+  label_sendmail_adhoc_name_placeholder: "Name (optional)"
+  label_sendmail_adhoc_email_placeholder: "name@beispiel.de"
+  label_sendmail_adhoc_tag: "Frei eingetragener Empfänger (nicht im Kontaktverzeichnis)"
+
+  label_sendmail_new_subject_placeholder: "Betreff (Ticket-Nr. wird automatisch ergänzt)"
+  label_sendmail_new_subject_hint: "Optional. Leer = Ticket-Titel wird als Betreff verwendet."
+
+  label_sendmail_stage1_heading: "Empfänger bestätigen"
+  label_sendmail_stage1_intro: "Sie sind im Begriff, eine E-Mail an %{count} Empfänger zu versenden. Bitte prüfen Sie die Liste:"
+  label_sendmail_stage1_continue: "Weiter zur Vorschau"

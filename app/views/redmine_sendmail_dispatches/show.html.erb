@@ -4,9 +4,13 @@
   <p><strong><%= l(:field_created_on) %>:</strong> <%= format_time(@dispatch.created_at) %></p>
   <p><strong><%= l(:field_issue) %>:</strong> <%= link_to "##{@dispatch.issue_id}", issue_path(@dispatch.issue_id) %></p>
   <p><strong><%= l(:field_user) %>:</strong> <%= h(@dispatch.user.try(:name)) %></p>
+  <p><strong><%= l(:label_sendmail_mode) %>:</strong> <%= sendmail_mode_label(@dispatch) %></p>
   <p><strong><%= l(:label_sendmail_recipient) %>:</strong>
      <%= h(@dispatch.recipient_name.presence || @dispatch.recipient_email) %>
-     &lt;<%= h(@dispatch.recipient_email) %>&gt;</p>
+     &lt;<%= h(@dispatch.recipient_email) %>&gt;
+     <% if @dispatch.is_adhoc %>
+       <span class="redmine-sendmail-adhoc-tag" title="<%= l(:label_sendmail_adhoc_tag) %>">✎</span>
+     <% end %></p>
   <p><strong><%= l(:label_sendmail_subject) %>:</strong> <%= h(@dispatch.subject) %></p>
   <p><strong><%= l(:field_status) %>:</strong>
     <% if @dispatch.sent? %>
