@@ -304,13 +304,12 @@
         try { hostForm.requestSubmit(btn || null); return; } catch (e) { /* fall through */ }
       }
       if (btn) {
-        btn.click();
-      } else {
-        // Last resort: form.submit() bypasses the submit event entirely, so
-        // also clear the flag explicitly to avoid a stuck attribute.
-        delete hostForm.dataset[SENDMAIL_PREVIEW_FLAG];
-        hostForm.submit();
+        try { btn.click(); return; } catch (e) { /* fall through */ }
       }
+      // Final fallback for ancient browsers: form.submit() bypasses the
+      // submit event entirely, so also clear the flag to avoid a stuck attr.
+      delete hostForm.dataset[SENDMAIL_PREVIEW_FLAG];
+      hostForm.submit();
     };
     modal.classList.add('active');
   }
