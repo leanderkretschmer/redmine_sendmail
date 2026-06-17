@@ -292,23 +292,19 @@
       hide();
       var hostForm = findIssueForm();
       if (!hostForm) { return; }
-      hostForm.dataset[SENDMAIL_PREVIEW_FLAG] = '1';
+      // Re-enable the save button defensively (in case anything disabled it).
       var btn = findSaveButton(hostForm);
-      // Rails UJS may have disabled the save button when it ran the first
-      // (cancelled) submit. Re-enable so a programmatic click/submit reaches
-      // the browser's form submission path.
       if (btn && btn.disabled) { btn.disabled = false; }
-      // requestSubmit() is the standardised API: it fires the form's submit
-      // event (so our flag-aware listener can release it) and then submits.
-      if (typeof hostForm.requestSubmit === 'function') {
-        try { hostForm.requestSubmit(btn || null); return; } catch (e) { /* fall through */ }
-      }
-      if (btn) {
-        try { btn.click(); return; } catch (e) { /* fall through */ }
-      }
-      // Final fallback for ancient browsers: form.submit() bypasses the
-      // submit event entirely, so also clear the flag to avoid a stuck attr.
-      delete hostForm.dataset[SENDMAIL_PREVIEW_FLAG];
+      // Use form.submit() directly: it is the only call that *unconditionally*
+      // posts the form, bypassing every submit-event listener (incl. our own
+      // preview interceptor) and any UJS/Stimulus/jQuery delegates that might
+      // preventDefault. requestSubmit() previously seemed to fire the event but
+      // never actually POST — so we stop relying on the event flow entirely.
+      // Clear Redmine's "leaving unsaved" textarea marker manually since the
+      // delegated submit listener that normally clears it won't run.
+      try {
+        if (window.jQuery) { window.jQuery('textarea', hostForm).removeData('changed'); }
+      } catch (e) { /* ignore */ }
       hostForm.submit();
     };
     modal.classList.add('active');
