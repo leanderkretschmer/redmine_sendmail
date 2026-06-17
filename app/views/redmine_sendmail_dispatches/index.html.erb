@@ -6,13 +6,13 @@
   <table class="list">
     <thead>
       <tr>
-        <th><%= sort_header_tag('created_at', caption: l(:field_created_on)) %></th>
+        <%= sort_header_tag('created_at', caption: l(:field_created_on)) %>
         <th><%= l(:field_issue) %></th>
         <th><%= l(:label_sendmail_mode) %></th>
-        <th><%= sort_header_tag('recipient_email', caption: l(:label_sendmail_recipient)) %></th>
-        <th><%= sort_header_tag('subject', caption: l(:label_sendmail_subject)) %></th>
+        <%= sort_header_tag('recipient_email', caption: l(:label_sendmail_recipient)) %>
+        <%= sort_header_tag('subject', caption: l(:label_sendmail_subject)) %>
         <th><%= l(:field_user) %></th>
-        <th><%= sort_header_tag('status', caption: l(:field_status)) %></th>
+        <%= sort_header_tag('status', caption: l(:field_status)) %>
         <th></th>
       </tr>
     </thead>
