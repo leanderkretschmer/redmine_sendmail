@@ -286,6 +286,32 @@
   background: #166c2e;
 }
 
+.redmine-sendmail-preview-sending {
+  margin-top: 1em;
+  padding: 1.2em 0.6em;
+  text-align: center;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #1a7f37;
+}
+
+.redmine-sendmail-preview-sending::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.5em;
+  border: 2px solid #c2c2c2;
+  border-top-color: #1a7f37;
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: redmine-sendmail-spin 0.8s linear infinite;
+}
+
+@keyframes redmine-sendmail-spin {
+  to { transform: rotate(360deg); }
+}
+
 .redmine-sendmail-preview-error {
   margin-top: 0.8em;
   padding: 0.4em 0.6em;

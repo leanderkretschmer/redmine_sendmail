@@ -123,3 +123,4 @@ de:
   label_sendmail_stage1_heading: "Empfänger bestätigen"
   label_sendmail_stage1_intro: "Sie sind im Begriff, eine E-Mail an %{count} Empfänger zu versenden. Bitte prüfen Sie die Liste:"
   label_sendmail_stage1_continue: "Weiter zur Vorschau"
+  label_sendmail_preview_sending: "Wird gesendet…"

@@ -289,19 +289,35 @@
       send.style.display = '';
     };
     send.onclick = function () {
-      hide();
       var hostForm = findIssueForm();
       if (!hostForm) { return; }
       // Re-enable the save button defensively (in case anything disabled it).
       var btn = findSaveButton(hostForm);
       if (btn && btn.disabled) { btn.disabled = false; }
+      // Replace the modal content with a "Sending..." message so the user gets
+      // immediate feedback during the form-submit -> server-processing ->
+      // redirect cycle (typically ~1 second). The modal hides itself when the
+      // browser navigates to the response page.
+      var s1 = modal.querySelector('.redmine-sendmail-preview-stage1');
+      var s2 = modal.querySelector('.redmine-sendmail-preview-stage2');
+      if (s1) { s1.style.display = 'none'; }
+      if (s2) { s2.style.display = 'none'; }
+      modal.querySelector('.redmine-sendmail-preview-heading').textContent =
+        (labels.sending || 'Wird gesendet…');
+      var actions = modal.querySelector('.redmine-sendmail-preview-actions');
+      if (actions) { actions.style.display = 'none'; }
+      var sending = modal.querySelector('.redmine-sendmail-preview-sending');
+      if (!sending) {
+        sending = document.createElement('div');
+        sending.className = 'redmine-sendmail-preview-sending';
+        modal.querySelector('.redmine-sendmail-preview-content').appendChild(sending);
+      }
+      sending.style.display = '';
+      sending.textContent = labels.sending || 'Wird gesendet…';
       // Use form.submit() directly: it is the only call that *unconditionally*
       // posts the form, bypassing every submit-event listener (incl. our own
       // preview interceptor) and any UJS/Stimulus/jQuery delegates that might
-      // preventDefault. requestSubmit() previously seemed to fire the event but
-      // never actually POST — so we stop relying on the event flow entirely.
-      // Clear Redmine's "leaving unsaved" textarea marker manually since the
-      // delegated submit listener that normally clears it won't run.
+      // preventDefault.
       try {
         if (window.jQuery) { window.jQuery('textarea', hostForm).removeData('changed'); }
       } catch (e) { /* ignore */ }
@@ -348,6 +364,7 @@
       send:           form.getAttribute('data-sendmail-label-send')            || 'Send',
       edit:           form.getAttribute('data-sendmail-label-edit')            || 'Edit',
       close:          form.getAttribute('data-sendmail-label-close')           || 'Close',
+      sending:        form.getAttribute('data-sendmail-label-sending')         || 'Wird gesendet…',
       multiRecipient: form.getAttribute('data-sendmail-label-multi')           || '%{count} recipients — preview shows the first.'
     };
   }

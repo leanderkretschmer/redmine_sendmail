@@ -123,3 +123,4 @@ en:
   label_sendmail_stage1_heading: "Confirm recipients"
   label_sendmail_stage1_intro: "You are about to send mail to %{count} recipients. Please verify:"
   label_sendmail_stage1_continue: "Continue to preview"
+  label_sendmail_preview_sending: "Sending…"
