@@ -1,8 +1,10 @@
 <%# Renders the recipient picker shared by the new-issue and notes forms.
 
-     Each contact row carries a hidden checkbox (for backwards-compat naming
-     `sendmail[contact_ids][]`) plus a small TO/CC/BCC mode select. Ad-hoc
-     recipients live in a dynamic list that the JS extends client-side. %>
+     Each row has three mutually-exclusive TO/CC/BCC buttons. Clicking one
+     activates that mode AND marks the contact as a recipient; clicking the
+     already-active button deselects it. Behind the scenes the buttons drive
+     a hidden checkbox (kept for the existing form-submission contract:
+     `sendmail[contact_ids][]`) plus a hidden mode input. %>
 <% if contacts.any? %>
   <input type="text"
          class="redmine-sendmail-recipient-search"
@@ -13,6 +15,7 @@
     <% contacts.each do |c| %>
       <div class="redmine-sendmail-recipient-item"
            data-sendmail-recipient-item
+           data-contact-id="<%= c.id %>"
            data-search-blob="<%= h("#{c.name} #{c.primary_email}".downcase) %>">
         <%= check_box_tag 'sendmail[contact_ids][]',
                           c.id,
@@ -22,19 +25,27 @@
                           data: { 'sendmail-recipient' => true,
                                   'email' => c.primary_email,
                                   'name'  => c.name } %>
-        <%= select_tag "sendmail[contact_modes][#{c.id}]",
-                       options_for_select([
-                         [l(:label_sendmail_mode_to),  'to'],
-                         [l(:label_sendmail_mode_cc),  'cc'],
-                         [l(:label_sendmail_mode_bcc), 'bcc']
-                       ], 'to'),
-                       class: 'redmine-sendmail-recipient-mode',
-                       data: { 'sendmail-mode-for' => c.id } %>
-        <label for="sendmail_contact_<%= c.id %>"
-               class="redmine-sendmail-recipient-label">
+        <%= hidden_field_tag "sendmail[contact_modes][#{c.id}]", 'to',
+                             id:   "sendmail_contact_mode_#{c.id}",
+                             class: 'redmine-sendmail-recipient-mode-input',
+                             data: { 'sendmail-mode-for' => c.id } %>
+        <span class="redmine-sendmail-mode-buttons"
+              role="group"
+              aria-label="<%= l(:label_sendmail_mode) %>">
+          <% [['to',  :label_sendmail_mode_to],
+              ['cc',  :label_sendmail_mode_cc],
+              ['bcc', :label_sendmail_mode_bcc]].each do |mode, label_key| %>
+            <button type="button"
+                    class="redmine-sendmail-mode-btn redmine-sendmail-mode-btn-<%= mode %>"
+                    data-sendmail-mode-btn="<%= c.id %>"
+                    data-mode="<%= mode %>"
+                    aria-pressed="false"><%= l(label_key) %></button>
+          <% end %>
+        </span>
+        <span class="redmine-sendmail-recipient-info">
           <span class="redmine-sendmail-recipient-name"><%= h(c.name) %></span>
           <span class="redmine-sendmail-recipient-email">&lt;<%= h(c.primary_email) %>&gt;</span>
-        </label>
+        </span>
       </div>
     <% end %>
   </div>

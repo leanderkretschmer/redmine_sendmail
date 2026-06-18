@@ -429,7 +429,7 @@
 
   function wireForm(form) {
     // Same multi-init protection as wirePreview: don't double-attach the
-    // checkbox/mode-select/search/adhoc listeners.
+    // checkbox/mode-button/search/adhoc listeners.
     if (form.dataset.sendmailWired === '1') { return; }
     form.dataset.sendmailWired = '1';
 
@@ -439,18 +439,52 @@
     for (var i = 0; i < checkboxes.length; i++) {
       checkboxes[i].addEventListener('change', function () { updateAfterChange(form); });
     }
-    var modeSelects = form.querySelectorAll('.redmine-sendmail-recipient-mode');
-    for (var j = 0; j < modeSelects.length; j++) {
-      modeSelects[j].addEventListener('change', function (e) {
-        var cid = e.target.getAttribute('data-sendmail-mode-for');
-        var cb  = form.querySelector('#sendmail_contact_' + cid);
-        if (cb && !cb.checked) { cb.checked = true; updateAfterChange(form); }
-      });
-    }
+    wireModeButtons(form);
     wireSearch(form);
     wireAdhoc(form);
     wirePreview(form);
     updateAfterChange(form);
+  }
+
+  // Each recipient row has three mutually-exclusive TO/CC/BCC buttons.
+  // Clicking a button selects that mode and marks the contact as recipient.
+  // Clicking the already-active button deselects the contact entirely.
+  function wireModeButtons(form) {
+    var buttons = form.querySelectorAll('[data-sendmail-mode-btn]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function (e) {
+        var btn = e.currentTarget;
+        var cid = btn.getAttribute('data-sendmail-mode-btn');
+        var mode = btn.getAttribute('data-mode');
+        var checkbox = form.querySelector('#sendmail_contact_' + cid);
+        var modeInput = form.querySelector('#sendmail_contact_mode_' + cid);
+        var groupBtns = form.querySelectorAll('[data-sendmail-mode-btn="' + cid + '"]');
+        var wasActive = btn.classList.contains('active');
+
+        // Clear active state on all buttons in this row.
+        for (var j = 0; j < groupBtns.length; j++) {
+          groupBtns[j].classList.remove('active');
+          groupBtns[j].setAttribute('aria-pressed', 'false');
+        }
+
+        if (wasActive) {
+          // Re-clicking the active button deselects the contact.
+          if (checkbox) { checkbox.checked = false; }
+        } else {
+          btn.classList.add('active');
+          btn.setAttribute('aria-pressed', 'true');
+          if (modeInput) { modeInput.value = mode; }
+          if (checkbox && !checkbox.checked) { checkbox.checked = true; }
+        }
+        // Dispatch change so the recipient-count / save-button label updates.
+        if (checkbox) {
+          var ev = document.createEvent('Event');
+          ev.initEvent('change', true, true);
+          checkbox.dispatchEvent(ev);
+        }
+        updateAfterChange(form);
+      });
+    }
   }
 
   function initRecipientForm() {
