@@ -11,6 +11,7 @@
         <th><%= l(:label_sendmail_mode) %></th>
         <%= sort_header_tag('recipient_email', caption: l(:label_sendmail_recipient)) %>
         <%= sort_header_tag('subject', caption: l(:label_sendmail_subject)) %>
+        <th><%= l(:label_sendmail_attachments) %></th>
         <th><%= l(:field_user) %></th>
         <%= sort_header_tag('status', caption: l(:field_status)) %>
         <th></th>
@@ -24,6 +25,7 @@
           <td><%= sendmail_mode_label(d) %></td>
           <td><%= h(d.recipient_email) %><% if d.is_adhoc %> <span class="redmine-sendmail-adhoc-tag" title="<%= l(:label_sendmail_adhoc_tag) %>">✎</span><% end %></td>
           <td><%= h(d.subject) %></td>
+          <td><%= sendmail_attachment_badge(d) %></td>
           <td><%= h(d.user.try(:name)) %></td>
           <td><%= sendmail_status_cell(d) %></td>
           <td><%= link_to l(:button_view), project_sendmail_dispatch_path(@project, d) %></td>

@@ -9,6 +9,28 @@ module RedmineSendmailDispatchesHelper
     translated.presence
   end
 
+  # Renders a small "📎 N" badge with the joined filenames as tooltip — used in
+  # the dispatch index where space is tight. Returns nil when no attachments.
+  def sendmail_attachment_badge(dispatch)
+    names = dispatch.attachment_filenames_list
+    return nil if names.empty?
+    content_tag(:span,
+                "📎 #{names.size}",
+                class: 'redmine-sendmail-attachment-badge',
+                title: names.join("\n"))
+  end
+
+  # Renders the filenames as plain text — one filename per line — used on the
+  # dispatch detail page. Returns the empty-attachments label when none.
+  def sendmail_attachment_list(dispatch)
+    names = dispatch.attachment_filenames_list
+    if names.empty?
+      content_tag(:em, l(:label_sendmail_no_attachments), class: 'redmine-sendmail-empty')
+    else
+      safe_join(names.map { |n| content_tag(:span, n, class: 'redmine-sendmail-attachment-name') }, tag.br)
+    end
+  end
+
   def sendmail_mode_label(dispatch)
     mode = dispatch.respond_to?(:mode) ? dispatch.mode.to_s : 'to'
     key  = "label_sendmail_mode_#{mode.presence || 'to'}"

@@ -408,6 +408,28 @@
   font-weight: bold;
 }
 
+/* Attachment badge / list in dispatch log */
+.redmine-sendmail-attachment-badge {
+  display: inline-block;
+  padding: 0.05em 0.5em;
+  border-radius: 3px;
+  background: #f0f0f0;
+  color: #444;
+  font-size: 0.85em;
+  cursor: help;
+  white-space: pre-line;
+}
+
+.redmine-sendmail-attachment-name {
+  display: inline-block;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 0.1em 0.5em;
+  margin: 0.1em 0;
+}
+
 /* Mode badges in dispatch log */
 .redmine-sendmail-mode {
   display: inline-block;

@@ -134,14 +134,16 @@ module RedmineSendmail
                                  user: user, recipient: r, mode: 'cc',
                                  subject: records.first&.subject || custom_subject,
                                  body: records.first&.body || comment_text,
-                                 settings: settings)
+                                 settings: settings,
+                                 attachments_data: attachments_data)
       end
       bcc_for_send.each do |r|
         records << log_recipient(issue: issue, project: project, journal: journal,
                                  user: user, recipient: r, mode: 'bcc',
                                  subject: records.first&.subject || custom_subject,
                                  body: records.first&.body || comment_text,
-                                 settings: settings)
+                                 settings: settings,
+                                 attachments_data: attachments_data)
       end
 
       records.compact
@@ -399,7 +401,8 @@ module RedmineSendmail
         body:            body,
         status:          'sent',
         mode:            mode,
-        is_adhoc:        recipient[:adhoc] ? true : false
+        is_adhoc:        recipient[:adhoc] ? true : false,
+        attachment_filenames: attachment_filenames_for(attachments_data)
       )
 
       Rails.logger.info("[redmine_sendmail] dispatcher: sending to #{recipient_email} mode=#{mode} (issue ##{issue.id}, journal ##{journal&.id || '-'}, contact ##{recipient[:contact_id] || '-'}, from=#{from_email.inspect}, from_name=#{from_name.inspect}, reply_to=#{reply_to.inspect}, cc=#{cc_recipients.size}, bcc=#{bcc_recipients.size}, attachments=#{attachments_data.size})")
@@ -434,7 +437,7 @@ module RedmineSendmail
     # (i.e. CC or BCC of the TO mail). The mail is NOT re-delivered — this
     # only records the recipient in the dispatch log so the per-project
     # overview shows every addressee individually.
-    def log_recipient(issue:, project:, journal:, user:, recipient:, mode:, subject:, body:, settings:)
+    def log_recipient(issue:, project:, journal:, user:, recipient:, mode:, subject:, body:, settings:, attachments_data: [])
       return nil unless settings['log_dispatches'].to_s == '1'
       record = RedmineSendmailDispatch.new(
         issue_id:        issue.id,
@@ -448,10 +451,24 @@ module RedmineSendmail
         body:            body.to_s,
         status:          'sent',
         mode:            mode,
-        is_adhoc:        recipient[:adhoc] ? true : false
+        is_adhoc:        recipient[:adhoc] ? true : false,
+        attachment_filenames: attachment_filenames_for(attachments_data)
       )
       record.save
       record
+    end
+
+    # Flattens an attachments_data array (as built by build_attachments_data)
+    # into a newline-separated filename string for storage in the dispatch log.
+    def attachment_filenames_for(attachments_data)
+      return nil unless attachments_data.is_a?(Array)
+      names = attachments_data.filter_map do |a|
+        next nil unless a.is_a?(Hash)
+        name = a[:filename] || a['filename']
+        name.to_s.strip.presence
+      end
+      return nil if names.empty?
+      names.join("\n")
     end
 
     # Re-sends a previously logged dispatch using the saved subject/body

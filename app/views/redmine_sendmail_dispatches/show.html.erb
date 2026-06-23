@@ -12,6 +12,7 @@
        <span class="redmine-sendmail-adhoc-tag" title="<%= l(:label_sendmail_adhoc_tag) %>">✎</span>
      <% end %></p>
   <p><strong><%= l(:label_sendmail_subject) %>:</strong> <%= h(@dispatch.subject) %></p>
+  <p><strong><%= l(:label_sendmail_attachments) %>:</strong> <%= sendmail_attachment_list(@dispatch) %></p>
   <p><strong><%= l(:field_status) %>:</strong>
     <% if @dispatch.sent? %>
       <span class="redmine-sendmail-status sent"><%= l(:label_sendmail_status_sent) %></span>
