@@ -560,6 +560,37 @@
   }
 
   if (window.jQuery) {
-    window.jQuery(document).on('ajax:complete', init);
+    // Redmine's new-issue form fires `$.ajax` on tracker/category/etc changes
+    // (form_update_triggered_by) which replaces the attributes area — including
+    // our recipient picker — without any DOM-remove/insert event we could hook.
+    // jQuery raises the camelCase `ajaxComplete` event on every raw $.ajax
+    // call; the colon-form `ajax:complete` is only fired by jquery-ujs for
+    // data-remote elements, which Redmine's issue form doesn't use — so we
+    // listen to both. init() is idempotent via the data-sendmail-wired guards.
+    window.jQuery(document).on('ajax:complete ajaxComplete', init);
+  }
+
+  // As a belt-and-suspenders defence against future Redmine changes that
+  // replace the sendmail form via a code path we don't recognise, observe DOM
+  // mutations and re-init when a fresh [data-sendmail-form] appears.
+  if (typeof MutationObserver === 'function') {
+    var observer = new MutationObserver(function (mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        var m = mutations[i];
+        for (var j = 0; j < m.addedNodes.length; j++) {
+          var node = m.addedNodes[j];
+          if (node.nodeType !== 1) { continue; }
+          if (node.matches && node.matches('[data-sendmail-form]')) { init(); return; }
+          if (node.querySelector && node.querySelector('[data-sendmail-form]')) { init(); return; }
+        }
+      }
+    });
+    if (document.body) {
+      observer.observe(document.body, { childList: true, subtree: true });
+    } else {
+      document.addEventListener('DOMContentLoaded', function () {
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
+    }
   }
 })();
