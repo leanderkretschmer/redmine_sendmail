@@ -124,12 +124,18 @@ class RedmineSendmailDispatchesController < ApplicationController
                  RedmineSendmail::Dispatcher.resolve_reply_to(settings, vars)
     from_name  = RedmineSendmail::TemplateRenderer.render(settings['from_name'].to_s, vars).strip.presence
 
+    attachments = Array(params[:attachments])
+                    .map { |n| n.to_s.strip }
+                    .reject(&:blank?)
+                    .uniq
+
     render json: {
       subject:         rendered_subject,
       body:            rendered_body,
       from:            from_email,
       from_name:       from_name,
       reply_to:        reply_to,
+      attachments:     attachments,
       to_recipients:   to_list.map  { |r| public_recipient(r) },
       cc_recipients:   cc_list.map  { |r| public_recipient(r) },
       bcc_recipients:  bcc_list.map { |r| public_recipient(r) },

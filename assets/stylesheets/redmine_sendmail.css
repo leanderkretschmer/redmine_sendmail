@@ -268,6 +268,21 @@
   margin: 0.6em 0 0.4em 0;
 }
 
+.redmine-sendmail-preview-attachments-row {
+  margin-top: 0.8em;
+  padding: 0.4em 0.6em;
+  background: #f6f8fa;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+}
+
+.redmine-sendmail-preview-attachments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3em;
+  margin-left: 0.5em;
+}
+
 .redmine-sendmail-preview-multi-note {
   margin-top: 0.4em;
   padding: 0.3em 0.6em;

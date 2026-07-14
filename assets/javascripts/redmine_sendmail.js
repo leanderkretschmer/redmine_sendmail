@@ -139,6 +139,7 @@
     var hostForm = findIssueForm();
     var bodyValue = '';
     var ticketSubject = '';
+    var attachments = [];
     if (hostForm) {
       var notesEl = hostForm.querySelector('textarea[name="issue[notes]"]');
       var descEl  = hostForm.querySelector('textarea[name="issue[description]"]');
@@ -146,6 +147,14 @@
                   (descEl  && descEl.value)  || '';
       var subjEl = hostForm.querySelector('input[name="issue[subject]"]');
       if (subjEl) { ticketSubject = subjEl.value; }
+      // Redmine's attachment upload UI stores each staged file's name in an
+      // <input class="filename"> inside .attachments_fields (both pending
+      // uploads with a token AND already-saved attachments with an id).
+      var fnInputs = hostForm.querySelectorAll('.attachments_fields input.filename');
+      for (var k = 0; k < fnInputs.length; k++) {
+        var v = (fnInputs[k].value || '').trim();
+        if (v) { attachments.push(v); }
+      }
     }
     return {
       contactIds:    contactIds,
@@ -153,7 +162,8 @@
       adhoc:         adhoc,
       subject:       subject,
       body:          bodyValue,
-      ticketSubject: ticketSubject
+      ticketSubject: ticketSubject,
+      attachments:   attachments
     };
   }
 
@@ -174,6 +184,10 @@
       '        <strong></strong> <span class="redmine-sendmail-preview-subject"></span>' +
       '      </div>' +
       '      <pre class="redmine-sendmail-preview-body"></pre>' +
+      '      <div class="redmine-sendmail-preview-attachments-row" style="display:none;">' +
+      '        <strong></strong>' +
+      '        <span class="redmine-sendmail-preview-attachments"></span>' +
+      '      </div>' +
       '    </div>' +
       '    <div class="redmine-sendmail-preview-actions">' +
       '      <button type="button" class="redmine-sendmail-preview-edit"></button>' +
@@ -267,6 +281,32 @@
     s2.querySelector('.redmine-sendmail-preview-subject-row strong').textContent = labels.subject + ':';
     s2.querySelector('.redmine-sendmail-preview-subject').textContent = data.subject;
     s2.querySelector('.redmine-sendmail-preview-body').textContent = data.body;
+
+    // Attachment list — pull the row placeholder we injected in buildModal(),
+    // hide it entirely when nothing is attached, otherwise fill with chip
+    // spans (filenames only, no thumbnails).
+    var attachRow = s2.querySelector('.redmine-sendmail-preview-attachments-row');
+    if (attachRow) {
+      var atts = data.attachments || [];
+      if (atts.length === 0) {
+        attachRow.style.display = 'none';
+      } else {
+        attachRow.style.display = '';
+        var label = attachRow.querySelector('strong');
+        var list  = attachRow.querySelector('.redmine-sendmail-preview-attachments');
+        if (label) { label.textContent = labels.attachments + ':'; }
+        if (list) {
+          list.innerHTML = '';
+          atts.forEach(function (name) {
+            var chip = document.createElement('span');
+            chip.className = 'redmine-sendmail-attachment-name';
+            chip.textContent = name;
+            list.appendChild(chip);
+          });
+        }
+      }
+    }
+
     modal.querySelector('.redmine-sendmail-preview-error').style.display = 'none';
 
     var edit = modal.querySelector('.redmine-sendmail-preview-edit');
@@ -365,6 +405,7 @@
       edit:           form.getAttribute('data-sendmail-label-edit')            || 'Edit',
       close:          form.getAttribute('data-sendmail-label-close')           || 'Close',
       sending:        form.getAttribute('data-sendmail-label-sending')         || 'Wird gesendet…',
+      attachments:    form.getAttribute('data-sendmail-label-attachments')     || 'Anhänge',
       multiRecipient: form.getAttribute('data-sendmail-label-multi')           || '%{count} recipients — preview shows the first.'
     };
   }
@@ -381,6 +422,9 @@
       fd.append('sendmail[adhoc][' + i + '][email]', row.email);
       fd.append('sendmail[adhoc][' + i + '][name]',  row.name);
       fd.append('sendmail[adhoc][' + i + '][mode]',  row.mode);
+    });
+    (state.attachments || []).forEach(function (name) {
+      fd.append('attachments[]', name);
     });
     fd.append('sendmail[subject]', state.subject || '');
     fd.append('subject', state.subject || '');
