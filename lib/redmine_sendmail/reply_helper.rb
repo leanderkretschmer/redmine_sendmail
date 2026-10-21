@@ -144,6 +144,13 @@ module RedmineSendmail
       contact = contact_for_user(journal.user, project, user)
       return { contacts: [{ id: contact.id, mode: 'to' }], adhoc: [] } if contact
 
+      # Sender of an incoming mail who is not (yet) a project contact:
+      # preselect the real address as ad-hoc recipient.
+      if email_origin?(journal)
+        addr = sender_address(journal.user)
+        return { contacts: [], adhoc: [{ email: addr, name: sender_name(journal.user), mode: 'to' }] } if addr
+      end
+
       last = RedmineSendmailDispatch.where(issue_id: issue.id).order(created_at: :desc).first
       return { contacts: [], adhoc: [] } unless last
       siblings = RedmineSendmailDispatch.where(issue_id: issue.id, journal_id: last.journal_id)
@@ -172,14 +179,58 @@ module RedmineSendmail
       { contacts: contacts, adhoc: adhoc }
     end
 
-    def contact_for_user(journal_user, project, user)
-      return nil unless journal_user && !journal_user.anonymous? && defined?(Contact)
+    # All known addresses of a user, lower-cased, without the placeholder
+    # ("dummy") addresses redmine_mail_handler assigns to created senders.
+    def user_addresses(journal_user)
+      return [] unless journal_user && !journal_user.anonymous?
       addresses = []
       addresses << journal_user.mail.to_s if journal_user.respond_to?(:mail)
       if journal_user.respond_to?(:email_addresses)
         addresses.concat(journal_user.email_addresses.map(&:address))
       end
       addresses = addresses.map { |a| a.to_s.strip.downcase }.reject(&:blank?).uniq
+      suffix = dummy_mail_suffix
+      real = suffix ? addresses.reject { |a| a.end_with?("@#{suffix}") } : addresses
+      real.any? ? real : addresses
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] user_addresses failed: #{e.class}: #{e.message}")
+      []
+    end
+
+    def dummy_mail_suffix
+      mh = Setting.respond_to?(:plugin_redmine_mail_handler) ? (Setting.plugin_redmine_mail_handler || {}) : {}
+      return nil unless mh['dummy_mail_enabled'].to_s == '1'
+      mh['dummy_mail_suffix'].to_s.strip.downcase.presence
+    rescue
+      nil
+    end
+
+    # Deliverable address of a mail sender (nil if only a dummy address exists).
+    def sender_address(journal_user)
+      suffix = dummy_mail_suffix
+      user_addresses(journal_user).find { |a| a =~ EMAIL_RE && !(suffix && a.end_with?("@#{suffix}")) }
+    end
+
+    EMAIL_RE = /\A[^@\s]+@[^@\s]+\z/
+
+    # Display name of a mail sender; drops the placeholder last name
+    # redmine_mail_handler assigns to auto-created users ("Auto-generated").
+    def sender_name(journal_user)
+      return '' unless journal_user
+      mh = Setting.respond_to?(:plugin_redmine_mail_handler) ? (Setting.plugin_redmine_mail_handler || {}) : {}
+      placeholder = mh['user_lastname_custom'].to_s.strip
+      if placeholder.present? && journal_user.lastname.to_s.strip.casecmp?(placeholder)
+        journal_user.firstname.to_s.strip
+      else
+        journal_user.name.to_s
+      end
+    rescue
+      journal_user.name.to_s
+    end
+
+    def contact_for_user(journal_user, project, user)
+      return nil unless journal_user && !journal_user.anonymous? && defined?(Contact)
+      addresses = user_addresses(journal_user)
       return nil if addresses.empty?
       scope = Contact.all
       scope = scope.by_project(project.id) if Contact.respond_to?(:by_project)
