@@ -86,12 +86,34 @@ module RedmineSendmail
 
     # ---- journal origin / reply subject ---------------------------------
 
-    # Heuristic: redmine_mail_handler creates the sender user with
-    # login == e-mail address and status LOCKED, and prepends the mail
-    # subject as the first line of the journal notes. A journal whose author
-    # matches that convention is treated as "arrived by e-mail".
+    # Hard marker written by redmine_mail_handler (table
+    # mail_handler_journal_mails, one row per journal created from a mail):
+    # message id, subject, sender. nil when the plugin/table is missing or
+    # the journal predates the marker.
+    def journal_mail(journal)
+      return nil unless journal && journal.id
+      return nil unless defined?(::MailHandlerJournalMail) && ::MailHandlerJournalMail.table_exists?
+      ::MailHandlerJournalMail.for_journal(journal)
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] journal_mail lookup failed: #{e.class}: #{e.message}")
+      nil
+    end
+
+    def journal_mail_marker_available?
+      defined?(::MailHandlerJournalMail) && ::MailHandlerJournalMail.table_exists?
+    rescue
+      false
+    end
+
+    # "Arrived by e-mail": the marker row exists. For journals older than the
+    # marker (no row) a heuristic is used: redmine_mail_handler creates the
+    # sender user with login == e-mail address and status LOCKED and prepends
+    # the mail subject as first line of the notes. Comments of existing
+    # regular users that arrived by mail before the marker existed cannot be
+    # told apart from hand-written ones.
     def email_origin?(journal)
       return false unless journal && journal.notes.present?
+      return true if journal_mail(journal)
       user = journal.user
       return false unless user && !user.anonymous?
       user.login.to_s.include?('@') || (user.respond_to?(:locked?) && user.locked?)
@@ -104,12 +126,27 @@ module RedmineSendmail
       email_origin?(journal) ? 'email' : 'other'
     end
 
-    # The original mail subject as written by redmine_mail_handler into the
-    # first line of the notes (only meaningful for e-mail origin journals).
+    # The original mail subject: from the marker row (subject before the
+    # alias "[#id]" prefix was added), otherwise from the first notes line
+    # redmine_mail_handler writes (only meaningful for e-mail origin journals).
     def original_mail_subject(journal)
-      return '' unless journal && journal.notes.present?
+      return '' unless journal
+      row = journal_mail(journal)
+      return clean_subject(row.reply_subject) if row && row.reply_subject.present?
+      return '' unless journal.notes.present?
       first = journal.notes.to_s.lines.first.to_s.strip
       clean_subject(first)
+    end
+
+    # Mail headers that thread a reply under the original mail.
+    def reply_headers(journal)
+      row = journal_mail(journal)
+      return {} unless row && row.message_id.present?
+      mid = row.message_id.to_s.strip
+      mid = "<#{mid}>" unless mid.start_with?('<')
+      { 'In-Reply-To' => mid, 'References' => mid }
+    rescue
+      {}
     end
 
     # Strips reply/forward prefixes and ticket-number tokens like "[#123]".
@@ -120,36 +157,42 @@ module RedmineSendmail
       s.gsub(/\s{2,}/, ' ').strip
     end
 
-    # "re: <original subject>, <ticket subject> #<id>" for mails that arrived
-    # by e-mail, otherwise "<ticket subject> #<id>".
+    # "RE: <original subject>, <ticket subject> #<id>" for comments that
+    # arrived by e-mail, otherwise "<ticket subject> #<id>".
     def reply_subject(issue, journal)
       base = "#{issue.subject.to_s.strip} ##{issue.id}"
       return base unless email_origin?(journal)
       orig = original_mail_subject(journal)
-      orig.present? ? "re: #{orig}, #{base}" : base
+      orig.present? ? "RE: #{orig}, #{base}" : base
     end
 
     # ---- recipient preselection -----------------------------------------
 
-    # Recipients to preselect when replying to `journal`:
-    #   1. the recipients the journal itself was sent to (reply to own mail),
-    #   2. the project contact whose e-mail matches the journal author,
-    #   3. the recipients of the most recent dispatch of the same issue.
+    # Recipients to preselect when replying to `journal` (a comment that
+    # arrived by e-mail):
+    #   1. the project contact whose e-mail matches the sender of the mail
+    #      (marker row from redmine_mail_handler, else the journal author),
+    #   2. the sender's real address as ad-hoc recipient if no contact matches,
+    #   3. the recipients the journal itself was sent to by this plugin,
+    #   4. the recipients of the most recent dispatch of the same issue.
     # Returns { contacts: [{id:, mode:}], adhoc: [{email:, name:, mode:}] }.
     def reply_recipients(journal, project, user)
       issue = journal.journalized
-      from_dispatches = dispatch_recipients(RedmineSendmailDispatch.where(journal_id: journal.id), project, user)
-      return from_dispatches if from_dispatches[:contacts].any? || from_dispatches[:adhoc].any?
+      row   = journal_mail(journal)
 
-      contact = contact_for_user(journal.user, project, user)
+      contact = contact_for_user(journal.user, project, user, [row&.from_address])
       return { contacts: [{ id: contact.id, mode: 'to' }], adhoc: [] } if contact
 
-      # Sender of an incoming mail who is not (yet) a project contact:
-      # preselect the real address as ad-hoc recipient.
       if email_origin?(journal)
-        addr = sender_address(journal.user)
-        return { contacts: [], adhoc: [{ email: addr, name: sender_name(journal.user), mode: 'to' }] } if addr
+        addr = (row&.from_address.presence || sender_address(journal.user))
+        if addr
+          name = row&.from_name.presence || sender_name(journal.user)
+          return { contacts: [], adhoc: [{ email: addr, name: name, mode: 'to' }] }
+        end
       end
+
+      from_dispatches = dispatch_recipients(RedmineSendmailDispatch.where(journal_id: journal.id), project, user)
+      return from_dispatches if from_dispatches[:contacts].any? || from_dispatches[:adhoc].any?
 
       last = RedmineSendmailDispatch.where(issue_id: issue.id).order(created_at: :desc).first
       return { contacts: [], adhoc: [] } unless last
@@ -182,7 +225,7 @@ module RedmineSendmail
     # All known addresses of a user, lower-cased, without the placeholder
     # ("dummy") addresses redmine_mail_handler assigns to created senders.
     def user_addresses(journal_user)
-      return [] unless journal_user && !journal_user.anonymous?
+      return [] unless journal_user && !(journal_user.respond_to?(:anonymous?) && journal_user.anonymous?)
       addresses = []
       addresses << journal_user.mail.to_s if journal_user.respond_to?(:mail)
       if journal_user.respond_to?(:email_addresses)
@@ -228,9 +271,9 @@ module RedmineSendmail
       journal_user.name.to_s
     end
 
-    def contact_for_user(journal_user, project, user)
-      return nil unless journal_user && !journal_user.anonymous? && defined?(Contact)
-      addresses = user_addresses(journal_user)
+    def contact_for_user(journal_user, project, user, extra_addresses = [])
+      return nil unless defined?(Contact)
+      addresses = (user_addresses(journal_user) + Array(extra_addresses).map { |a| a.to_s.strip.downcase }).reject(&:blank?).uniq
       return nil if addresses.empty?
       scope = Contact.all
       scope = scope.by_project(project.id) if Contact.respond_to?(:by_project)

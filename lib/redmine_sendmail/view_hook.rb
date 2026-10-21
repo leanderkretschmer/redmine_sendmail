@@ -93,6 +93,9 @@ module RedmineSendmail
       return '' unless project.module_enabled?(:sendmail)
       return '' unless User.current.allowed_to?(:send_sendmail, project)
       return '' unless issue.notes_addable?
+      # Only comments that arrived by e-mail get a reply button — replying
+      # by mail to a comment written in Redmine or posted via API is wrong.
+      return '' unless ReplyHelper.email_origin?(journal)
       recipients = ReplyHelper.reply_recipients(journal, project, User.current)
       controller.send(:render_to_string,
                       partial: 'redmine_sendmail/journal_reply_link',

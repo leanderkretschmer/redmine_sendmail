@@ -128,8 +128,8 @@ de:
   label_sendmail_no_attachments: "—"
 
   # --- Antwort per E-Mail / Anrede / Zitat ---
-  label_sendmail_reply: "Per E-Mail antworten"
-  label_sendmail_reply_origin_email: "Dieser Kommentar ist als E-Mail eingegangen — der Betreff wird als „re: …“ übernommen."
+  label_sendmail_reply: "Antworten"
+  label_sendmail_reply_origin_email: "Per E-Mail antworten — der Kommentar ist als E-Mail eingegangen, der Betreff wird als „RE: …“ übernommen."
   label_sendmail_reply_origin_other: "Antwort auf diesen Kommentar als E-Mail an den Kontakt senden."
   label_sendmail_reply_to_comment: "Antwort auf"
   label_sendmail_reply_target: "Kommentar #%{indice}"
@@ -154,7 +154,7 @@ de:
   label_sendmail_quote_header_template: "Zitat-Einleitung"
   label_sendmail_quote_header_template_hint: "Zeile über dem zitierten Kommentar. Platzhalter: {quote_date}, {quote_time}, {quote_author}."
   label_sendmail_quote_default: "Zitat beim Antworten vorauswählen"
-  label_sendmail_quote_default_hint: "Wenn aktiv, ist die Zitat-Checkbox nach Klick auf „Per E-Mail antworten“ bereits angehakt."
+  label_sendmail_quote_default_hint: "Wenn aktiv, ist die Zitat-Checkbox nach Klick auf „Antworten“ bereits angehakt."
   label_sendmail_preview_header: "Kopf (automatisch)"
   label_sendmail_preview_footer: "Fuß (automatisch)"
   label_sendmail_preview_quote: "Zitierter Kommentar"

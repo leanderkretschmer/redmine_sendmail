@@ -38,6 +38,7 @@ module RedmineSendmail
       with_user_locale(user) do
         options = extract_options(params)
         options[:quote_text] = build_reply_quote(params, issue, settings)
+        options[:reply_headers] = build_reply_headers(params, issue)
         Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]; options=#{options.except(:quote_text).inspect} quote=#{options[:quote_text].to_s.bytesize}B")
 
         dispatch_recipients(
@@ -79,6 +80,18 @@ module RedmineSendmail
         quote:            ReplyHelper.truthy?(params[:quote] || params['quote']),
         reply_journal_id: (params[:reply_journal_id] || params['reply_journal_id']).to_i
       }
+    end
+
+    # In-Reply-To / References for the mail being replied to (empty hash if
+    # the journal is unknown or did not arrive by mail).
+    def build_reply_headers(params, issue)
+      opts = extract_options(params)
+      return {} unless opts[:reply_journal_id] > 0
+      journal = Journal.find_by(id: opts[:reply_journal_id], journalized_type: 'Issue', journalized_id: issue.id)
+      journal ? ReplyHelper.reply_headers(journal) : {}
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] build_reply_headers failed: #{e.class}: #{e.message}")
+      {}
     end
 
     # Returns the quoted text of the journal being replied to (or '' when
@@ -469,7 +482,7 @@ module RedmineSendmail
           reply_to:         reply_to,
           cc:               cc_recipients,
           bcc:              bcc_recipients,
-          extra_headers:    { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s },
+          extra_headers:    { 'X-Redmine-Issue' => issue.id.to_s, 'X-Redmine-Project' => project.identifier.to_s }.merge(options[:reply_headers] || {}),
           smtp_config:      smtp_config,
           attachments_data: attachments_data
         ).deliver_now

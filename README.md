@@ -105,24 +105,29 @@ CC- und BCC-Empfänger erhalten dabei eine Kopie jeder dieser Mails. Jeder
 Empfänger wird einzeln im Mail-Versand-Log mit seinem Typ (TO/CC/BCC)
 protokolliert.
 
-## Per E-Mail antworten (Reply-Link am Kommentar)
+## Antworten (Reply-Link am Kommentar)
 
-Unter jedem Kommentar erscheint der Link **„Per E-Mail antworten“** (sofern
-Modul und Berechtigung vorhanden sind). Ein Klick öffnet das Kommentar-Formular
-und füllt es wie der Antworten-Button eines Mailprogramms vor:
+Unter jedem Kommentar, der **per E-Mail eingegangen** ist (importiert durch
+`redmine_mail_handler`), erscheint der Link **„Antworten“** mit Mail-Symbol.
+Kommentare, die in Redmine geschrieben oder über die REST-API (z. B. von der
+TYPO3-Website) angelegt wurden, bekommen keinen Link &mdash; eine Mail-Antwort
+darauf wäre falsch. Ein Klick öffnet das Kommentar-Formular und füllt es wie
+der Antworten-Button eines Mailprogramms vor:
 
-* **Empfänger** &mdash; vorausgewählt werden in dieser Reihenfolge:
-  1. die Empfänger, an die dieser Kommentar selbst per E-Mail verschickt wurde
-     (Antwort auf eigene Mail),
-  2. sonst der Projekt-Kontakt, dessen E-Mail-Adresse zum Autor des Kommentars
-     passt (Kommentar kam per Mail über `redmine_mail_handler`),
-  3. sonst die Empfänger des zuletzt aus diesem Ticket versendeten Mails.
-* **Betreff** &mdash; ist der Kommentar als E-Mail eingegangen, lautet der
-  Betreff `re: <Original-Betreff>, <Ticket-Titel> #<Ticket-Nr>`; andernfalls
-  (Kommentar über Website/TYPO3 oder direkt in Redmine) `<Ticket-Titel> #<Ticket-Nr>`.
+* **Empfänger** &mdash; der Absender der Mail: der passende Projekt-Kontakt
+  (Abgleich über die Absenderadresse bzw. die Mailadressen des
+  Kommentar-Autors), sonst die echte Absenderadresse als freier Empfänger.
+  Dummy-Adressen des Mail-Handlers werden ignoriert. Gibt es keinen Absender,
+  werden die Empfänger genommen, an die der Kommentar bzw. zuletzt aus dem
+  Ticket gemailt wurde.
+* **Betreff** &mdash; `RE: <Original-Betreff der Mail>, <Ticket-Titel> #<Ticket-Nr>`.
+  Der Original-Betreff kommt aus der Marker-Tabelle des Mail-Handlers (ohne
+  das vom Alias-Import ergänzte `[#123]`); `Re:`/`AW:`-Präfixe werden entfernt.
   Der Wert landet im Betreff-Feld (`{custom_subject}`) und wird anschließend
-  wie gewohnt durch die Betreff-Vorlage geschickt. Soll der Betreff genau so
-  verschickt werden, muss die Betreff-Vorlage `{custom_subject}` lauten.
+  durch die Betreff-Vorlage geschickt. Soll der Betreff genau so verschickt
+  werden, muss die Betreff-Vorlage `{custom_subject}` lauten.
+* **Threading** &mdash; die Antwort trägt `In-Reply-To`/`References` mit der
+  Message-ID der Original-Mail, sodass Mailprogramme sie im Verlauf einsortieren.
 * **Zitat** &mdash; Checkbox *„Kommentar als vorausgegangene E-Mail zitieren“*:
   der beantwortete Kommentar wird mit `> ` vor jeder Zeile und einer
   Einleitungszeile (Einstellung *Zitat-Einleitung*, Platzhalter `{quote_date}`,
@@ -133,11 +138,13 @@ und füllt es wie der Antworten-Button eines Mailprogramms vor:
   Checkbox vorausgewählt ist, steuert die Einstellung *„Zitat beim Antworten
   vorauswählen“*.
 
-Erkennung „als E-Mail eingegangen“: `redmine_mail_handler` legt Absender als
-gesperrte Benutzer mit Login = E-Mail-Adresse an und schreibt den Mail-Betreff
-als erste Zeile in den Kommentar. Kommentare solcher Benutzer gelten als
-E-Mail-Eingang; der Original-Betreff wird aus der ersten Zeile gelesen
-(`Re:`/`AW:`-Präfixe und `[#123]`-Marker werden entfernt).
+Erkennung „per E-Mail eingegangen“: `redmine_mail_handler` schreibt beim
+Import pro Kommentar eine Zeile in `mail_handler_journal_mails` (Journal-ID,
+Message-ID, Betreff, Absender). Für ältere Kommentare ohne diese Zeile greift
+eine Heuristik (vom Mail-Handler angelegte Absender haben Login = Mailadresse
+und sind gesperrt; der Betreff steht in der ersten Kommentarzeile). Ältere
+Mail-Kommentare von bereits vorhandenen Redmine-Benutzern sind damit nicht
+erkennbar.
 
 ## Anrede (Du/Sie), nur Vorname, Kleinschreibung
 

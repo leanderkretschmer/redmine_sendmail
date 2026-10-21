@@ -128,8 +128,8 @@ en:
   label_sendmail_no_attachments: "—"
 
   # --- Reply by e-mail / form of address / quoting ---
-  label_sendmail_reply: "Reply by e-mail"
-  label_sendmail_reply_origin_email: "This comment arrived by e-mail — its subject is reused as \"re: …\"."
+  label_sendmail_reply: "Reply"
+  label_sendmail_reply_origin_email: "Reply by e-mail — this comment arrived by e-mail, its subject is reused as \"RE: …\"."
   label_sendmail_reply_origin_other: "Send a reply to this comment as e-mail to the contact."
   label_sendmail_reply_to_comment: "Reply to"
   label_sendmail_reply_target: "comment #%{indice}"
@@ -154,7 +154,7 @@ en:
   label_sendmail_quote_header_template: "Quote header"
   label_sendmail_quote_header_template_hint: "Line above the quoted comment. Placeholders: {quote_date}, {quote_time}, {quote_author}."
   label_sendmail_quote_default: "Preselect quoting when replying"
-  label_sendmail_quote_default_hint: "If active, the quote checkbox is already ticked after clicking \"Reply by e-mail\"."
+  label_sendmail_quote_default_hint: "If active, the quote checkbox is already ticked after clicking \"Reply\"."
   label_sendmail_preview_header: "Header (automatic)"
   label_sendmail_preview_footer: "Footer (automatic)"
   label_sendmail_preview_quote: "Quoted comment"
