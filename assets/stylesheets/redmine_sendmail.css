@@ -166,6 +166,14 @@
 
 .redmine-sendmail-sent-icon {
   margin-right: 0.3em;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+
+.redmine-sendmail-sent-icon svg {
+  width: 16px;
+  height: 16px;
 }
 
 .redmine-sendmail-sent-label {
@@ -573,12 +581,6 @@
   font-size: 0.9em;
 }
 
-.redmine-sendmail-reply-origin {
-  margin-left: 0.3em;
-  color: #1e3a8a;
-  cursor: help;
-}
-
 /* Live header / footer around the comment textarea */
 .redmine-sendmail-live {
   white-space: pre-wrap;
@@ -641,4 +643,20 @@
   background: #f3f0e6;
   color: #666;
   border-left: 3px solid #c9b887;
+}
+
+/* "Create contact" link on ad-hoc recipient rows */
+.redmine-sendmail-adhoc-create-contact {
+  white-space: nowrap;
+  font-size: 0.85em;
+  padding: 0.2em 0.5em;
+  border: 1px solid #1a7f37;
+  border-radius: 3px;
+  color: #1a7f37;
+  text-decoration: none;
+}
+
+.redmine-sendmail-adhoc-create-contact:hover {
+  background: #1a7f37;
+  color: #fff;
 }

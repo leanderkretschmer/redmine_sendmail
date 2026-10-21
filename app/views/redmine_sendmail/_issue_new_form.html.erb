@@ -31,7 +31,7 @@
       <p>
         <label><%= l(:label_sendmail_recipients) %></label>
         <%= render partial: 'redmine_sendmail/recipient_fields',
-                   locals: { contacts: contacts } %>
+                   locals: { contacts: contacts, project: project } %>
       </p>
       <p class="redmine-sendmail-subject" data-sendmail-subject-row style="display:none;">
         <label for="sendmail_new_subject"><%= l(:label_sendmail_subject) %></label>

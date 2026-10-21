@@ -56,7 +56,8 @@
   </em>
 <% end %>
 
-<div class="redmine-sendmail-adhoc-block" data-sendmail-adhoc>
+<div class="redmine-sendmail-adhoc-block" data-sendmail-adhoc
+     data-sendmail-new-contact-url="<%= respond_to?(:new_project_contact_path) ? new_project_contact_path(project) : '' %>">
   <p class="redmine-sendmail-adhoc-header">
     <label><%= l(:label_sendmail_adhoc_section) %></label>
     <em class="info"><%= l(:label_sendmail_adhoc_hint) %></em>
@@ -80,6 +81,10 @@
       <input type="email" name="sendmail[adhoc][__IDX__][email]"
              class="redmine-sendmail-adhoc-email"
              placeholder="<%= l(:label_sendmail_adhoc_email_placeholder) %>">
+      <a href="#" class="redmine-sendmail-adhoc-create-contact"
+         data-sendmail-adhoc-create-contact
+         title="<%= l(:label_sendmail_adhoc_create_contact_hint) %>"
+         style="display:none;"><%= l(:label_sendmail_adhoc_create_contact) %></a>
       <button type="button" class="redmine-sendmail-adhoc-remove"
               data-sendmail-adhoc-remove
               title="<%= l(:button_delete) %>">&times;</button>

@@ -162,3 +162,5 @@ en:
   help_sendmail_recipient_name: "Recipient name — formatted according to \"first name only\" and lower-case options"
   help_sendmail_salutation: "Salutation / closing matching the chosen form of address (Du/Sie), see fields above"
   help_sendmail_quote: "Quoted comment when replying; without the placeholder the quote is appended to the end of the mail"
+  label_sendmail_adhoc_create_contact: "Create contact"
+  label_sendmail_adhoc_create_contact_hint: "Opens the project's new-contact page with name and e-mail pre-filled (new tab)."

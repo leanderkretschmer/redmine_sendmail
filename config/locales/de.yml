@@ -162,3 +162,5 @@ de:
   help_sendmail_recipient_name: "Empfängername — je nach Option „nur Vorname“ und Kleinschreibung formatiert"
   help_sendmail_salutation: "Begrüßung / Grußformel passend zur gewählten Anrede (Du/Sie), siehe Felder oben"
   help_sendmail_quote: "Zitierter Kommentar beim Antworten; ohne Platzhalter wird das Zitat ans Ende der Mail gehängt"
+  label_sendmail_adhoc_create_contact: "Kontakt erstellen"
+  label_sendmail_adhoc_create_contact_hint: "Öffnet die Kontakt-Anlegeseite des Projekts mit Name und E-Mail vorausgefüllt (neuer Tab)."

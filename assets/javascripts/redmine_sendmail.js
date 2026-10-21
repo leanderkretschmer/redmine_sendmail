@@ -77,13 +77,56 @@
       }
       var inputs = row.querySelectorAll('input, select');
       for (var i = 0; i < inputs.length; i++) {
-        inputs[i].addEventListener('input', function () { updateAfterChange(form); });
-        inputs[i].addEventListener('change', function () { updateAfterChange(form); });
+        inputs[i].addEventListener('input', function () { updateAfterChange(form); updateCreateContactLink(form, row); });
+        inputs[i].addEventListener('change', function () { updateAfterChange(form); updateCreateContactLink(form, row); });
       }
+      wireCreateContactLink(form, row);
       updateAfterChange(form);
     }
 
     addBtn.addEventListener('click', addRow);
+  }
+
+  // "Create contact" link on an ad-hoc recipient row: opens the project's
+  // new-contact page with name and e-mail pre-filled (redmine_contacts reads
+  // contact[...] params in ContactsController#new).
+  function createContactUrl(form, row) {
+    var block = form.querySelector('[data-sendmail-adhoc]');
+    var base = block ? (block.getAttribute('data-sendmail-new-contact-url') || '') : '';
+    if (!base) { return ''; }
+    var emailEl = row.querySelector('.redmine-sendmail-adhoc-email');
+    var nameEl  = row.querySelector('.redmine-sendmail-adhoc-name');
+    var email = emailEl ? emailEl.value.trim() : '';
+    if (!email) { return ''; }
+    var name = nameEl ? nameEl.value.trim() : '';
+    var parts = name.split(/\s+/).filter(function (p) { return p.length; });
+    var first = parts.length ? parts[0] : email.split('@')[0];
+    var last  = parts.length > 1 ? parts.slice(1).join(' ') : '';
+    var q = 'contact[first_name]=' + encodeURIComponent(first) +
+            '&contact[last_name]=' + encodeURIComponent(last) +
+            '&contact[email]=' + encodeURIComponent(email);
+    return base + (base.indexOf('?') === -1 ? '?' : '&') + q;
+  }
+
+  function updateCreateContactLink(form, row) {
+    var link = row.querySelector('[data-sendmail-adhoc-create-contact]');
+    if (!link) { return; }
+    var url = createContactUrl(form, row);
+    link.style.display = url ? '' : 'none';
+    if (url) { link.setAttribute('href', url); }
+  }
+
+  function wireCreateContactLink(form, row) {
+    var link = row.querySelector('[data-sendmail-adhoc-create-contact]');
+    if (!link) { return; }
+    link.setAttribute('target', '_blank');
+    link.setAttribute('rel', 'noopener');
+    link.addEventListener('click', function (e) {
+      var url = createContactUrl(form, row);
+      if (!url) { e.preventDefault(); return; }
+      link.setAttribute('href', url);
+    });
+    updateCreateContactLink(form, row);
   }
 
   function updateAfterChange(form) {
@@ -264,6 +307,7 @@
     if (emailEl) { emailEl.value = entry.email || ''; }
     if (nameEl)  { nameEl.value  = entry.name  || ''; }
     if (modeEl)  { modeEl.value  = entry.mode  || 'to'; }
+    updateCreateContactLink(form, row);
   }
 
   function handleReplyClick(replyEl) {

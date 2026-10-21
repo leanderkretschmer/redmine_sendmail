@@ -1,5 +1,5 @@
 <div class="redmine-sendmail-sent-marker" data-sendmail-marker>
-  <span class="redmine-sendmail-sent-icon">&#9993;</span>
+  <span class="redmine-sendmail-sent-icon icon icon-email"><%= sprite_icon('email') %></span>
   <span class="redmine-sendmail-sent-label"><%= l(:label_sendmail_sent_to) %>:</span>
   <%= safe_join(
         dispatches.map { |d|
