@@ -1,0 +1,13 @@
+<%# Per-user default form of address, rendered into "My account" and the
+     admin user form (params[:pref][...] is assigned via safe_attributes). %>
+<p>
+  <label for="pref_sendmail_form_of_address"><%= l(:label_sendmail_form_of_address) %></label>
+  <%= select_tag 'pref[sendmail_form_of_address]',
+                 options_for_select(
+                   [[l(:label_sendmail_form_of_address_default), ''],
+                    [l(:label_sendmail_form_of_address_du),  'du'],
+                    [l(:label_sendmail_form_of_address_sie), 'sie']],
+                   user.pref[:sendmail_form_of_address].to_s),
+                 id: 'pref_sendmail_form_of_address' %>
+  <em class="info"><%= l(:label_sendmail_form_of_address_pref_hint) %></em>
+</p>

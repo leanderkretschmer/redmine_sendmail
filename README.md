@@ -105,13 +105,79 @@ CC- und BCC-Empfänger erhalten dabei eine Kopie jeder dieser Mails. Jeder
 Empfänger wird einzeln im Mail-Versand-Log mit seinem Typ (TO/CC/BCC)
 protokolliert.
 
+## Per E-Mail antworten (Reply-Link am Kommentar)
+
+Unter jedem Kommentar erscheint der Link **„Per E-Mail antworten“** (sofern
+Modul und Berechtigung vorhanden sind). Ein Klick öffnet das Kommentar-Formular
+und füllt es wie der Antworten-Button eines Mailprogramms vor:
+
+* **Empfänger** &mdash; vorausgewählt werden in dieser Reihenfolge:
+  1. die Empfänger, an die dieser Kommentar selbst per E-Mail verschickt wurde
+     (Antwort auf eigene Mail),
+  2. sonst der Projekt-Kontakt, dessen E-Mail-Adresse zum Autor des Kommentars
+     passt (Kommentar kam per Mail über `redmine_mail_handler`),
+  3. sonst die Empfänger des zuletzt aus diesem Ticket versendeten Mails.
+* **Betreff** &mdash; ist der Kommentar als E-Mail eingegangen, lautet der
+  Betreff `re: <Original-Betreff>, <Ticket-Titel> #<Ticket-Nr>`; andernfalls
+  (Kommentar über Website/TYPO3 oder direkt in Redmine) `<Ticket-Titel> #<Ticket-Nr>`.
+  Der Wert landet im Betreff-Feld (`{custom_subject}`) und wird anschließend
+  wie gewohnt durch die Betreff-Vorlage geschickt. Soll der Betreff genau so
+  verschickt werden, muss die Betreff-Vorlage `{custom_subject}` lauten.
+* **Zitat** &mdash; Checkbox *„Kommentar als vorausgegangene E-Mail zitieren“*:
+  der beantwortete Kommentar wird mit `> ` vor jeder Zeile und einer
+  Einleitungszeile (Einstellung *Zitat-Einleitung*, Platzhalter `{quote_date}`,
+  `{quote_time}`, `{quote_author}`) an die Mail angehängt &mdash; unterhalb der
+  Signatur, wie in Mailprogrammen üblich. Enthält die Text-Vorlage den
+  Platzhalter `{quote}`, wird das Zitat stattdessen dort eingefügt. Das Zitat
+  wird nur in die Mail geschrieben, nicht in den Redmine-Kommentar. Ob die
+  Checkbox vorausgewählt ist, steuert die Einstellung *„Zitat beim Antworten
+  vorauswählen“*.
+
+Erkennung „als E-Mail eingegangen“: `redmine_mail_handler` legt Absender als
+gesperrte Benutzer mit Login = E-Mail-Adresse an und schreibt den Mail-Betreff
+als erste Zeile in den Kommentar. Kommentare solcher Benutzer gelten als
+E-Mail-Eingang; der Original-Betreff wird aus der ersten Zeile gelesen
+(`Re:`/`AW:`-Präfixe und `[#123]`-Marker werden entfernt).
+
+## Anrede (Du/Sie), nur Vorname, Kleinschreibung
+
+* **Anrede** &mdash; Pro Mail kann im Formular zwischen *Du* und *Sie* gewählt
+  werden. Vorbelegung: persönliche Einstellung unter *Mein Konto →
+  Einstellungen → Anrede*, sonst der *Anrede-Standard* der Plugin-Einstellungen.
+  Die Anrede wirkt über die Platzhalter `{salutation}` (Begrüßung) und
+  `{closing}` (Grußformel), die je Anredeform in den Plugin-Einstellungen
+  hinterlegt werden (z. B. `hallo {recipient_name},` / `guten tag {recipient_name},`
+  und `beste grüße\n{user_name}` / `mit freundlichen grüßen\n{user_name}`).
+  Die Text-Vorlage muss diese Platzhalter verwenden, damit die Wahl greift,
+  z. B. `{salutation}\n\n{comment}\n\n{closing}\n--\n…`.
+* **nur Vorname** &mdash; Checkbox im Formular: `{recipient_name}` wird zum
+  Vornamen des Kontakts und `{user_name}` zum Vornamen des angemeldeten
+  Benutzers (`hallo fritz, … beste grüße robbin` statt `hallo fritz nachname,
+  … beste grüße robbin kretschmer`). Zusätzlich stehen `{recipient_firstname}`
+  und `{recipient_lastname}` immer zur Verfügung.
+* **Kleinschreibung** &mdash; Einstellung *„Empfängername klein schreiben“*
+  (Standard: an): Vor- und Nachname des Empfängers werden immer klein
+  geschrieben, auch wenn sie im Kontakt groß geschrieben sind.
+
+## Kopf und Fuß sichtbar beim Schreiben und in der Vorschau
+
+Sobald mindestens ein Empfänger gewählt ist, werden die automatisch
+ergänzten Teile der Mail live um das Kommentarfeld angezeigt: die Begrüßung
+(alles vor `{comment}`) oberhalb, Grußformel/Signatur und ggf. das Zitat
+unterhalb des Textfelds. In der Mail-Vorschau sind *Kopf*, *Ihr Kommentar*,
+*Fuß* und *Zitierter Kommentar* als getrennte Abschnitte markiert, damit
+doppelte Begrüßungen („hallo fritz“ im Kommentar und nochmals im Kopf) sofort
+auffallen.
+
 ## Platzhalter
 
 `{user_name}`, `{user_login}`, `{user_firstname}`, `{user_lastname}`, `{user_email}`,
 `{ticket_id}`, `{ticket_subject}`, `{ticket_url}`,
 `{project_name}`, `{project_identifier}`, `{projekt-kennung}`,
 `{project_info_1}`, `{project_info_2}`,
-`{recipient_name}`, `{recipient_email}`,
+`{recipient_name}`, `{recipient_firstname}`, `{recipient_lastname}`, `{recipient_email}`,
+`{salutation}`, `{closing}` (Begrüßung/Grußformel je nach Anrede Du/Sie),
+`{quote}` (zitierter Kommentar beim Antworten; ohne Platzhalter ans Mailende angehängt),
 `{kunden-projekt-kennung}` (pro Kontakt × Projekt, am Kontakt unter
 *Kontakt-Detailseite → Mail-Versand: Kunden-Projekt-Kennung* pflegen — nur Admins),
 `{custom_subject}`, `{comment}`, `{date}`

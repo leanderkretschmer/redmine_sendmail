@@ -2,6 +2,7 @@ require_dependency File.expand_path('template_renderer', __dir__)
 require_dependency File.expand_path('smtp_resolver', __dir__)
 require_dependency File.expand_path('alias_resolver', __dir__)
 require_dependency File.expand_path('bounce_checker', __dir__)
+require_dependency File.expand_path('reply_helper', __dir__)
 
 module RedmineSendmail
   module Dispatcher
@@ -33,22 +34,64 @@ module RedmineSendmail
       attachments      = collect_attachments(journal: journal, issue: issue, attachment_params: attachment_params)
       attachments_data = build_attachments_data(attachments)
       cleaned_notes    = strip_inline_image_refs(journal.notes.to_s, attachments)
-      Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
 
-      dispatch_recipients(
-        issue:            issue,
-        project:          project,
-        journal:          journal,
-        user:             user,
-        custom_subject:   custom_subject,
-        comment_text:     cleaned_notes,
-        settings:         settings,
-        smtp_config:      smtp_config,
-        attachments_data: attachments_data,
-        to_list:          to_list,
-        cc_list:          cc_list,
-        bcc_list:         bcc_list
-      )
+      with_user_locale(user) do
+        options = extract_options(params)
+        options[:quote_text] = build_reply_quote(params, issue, settings)
+        Rails.logger.info("[redmine_sendmail] dispatcher: SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]; options=#{options.except(:quote_text).inspect} quote=#{options[:quote_text].to_s.bytesize}B")
+
+        dispatch_recipients(
+          issue:            issue,
+          project:          project,
+          journal:          journal,
+          user:             user,
+          custom_subject:   custom_subject,
+          comment_text:     cleaned_notes,
+          settings:         settings,
+          smtp_config:      smtp_config,
+          attachments_data: attachments_data,
+          to_list:          to_list,
+          cc_list:          cc_list,
+          bcc_list:         bcc_list,
+          options:          options
+        )
+      end
+    end
+
+    # Renders dates ({date}, quote header) in the sending user's language —
+    # the background job would otherwise use the process default locale.
+    def with_user_locale(user)
+      lang = user.respond_to?(:language) ? user.language.to_s : ''
+      lang = Setting.default_language.to_s if lang.blank?
+      lang = I18n.default_locale.to_s unless I18n.available_locales.map(&:to_s).include?(lang)
+      I18n.with_locale(lang) { yield }
+    rescue I18n::InvalidLocale
+      yield
+    end
+
+    # Reads the per-mail options submitted with the form (form of address,
+    # first-name-only greeting, quote of the replied-to comment).
+    def extract_options(params)
+      return {} unless params.respond_to?(:[])
+      {
+        form_of_address:  ReplyHelper.normalize_form_of_address(params[:form_of_address] || params['form_of_address']),
+        first_name_only:  ReplyHelper.truthy?(params[:first_name_only] || params['first_name_only']),
+        quote:            ReplyHelper.truthy?(params[:quote] || params['quote']),
+        reply_journal_id: (params[:reply_journal_id] || params['reply_journal_id']).to_i
+      }
+    end
+
+    # Returns the quoted text of the journal being replied to (or '' when
+    # quoting is off / the journal does not belong to the issue).
+    def build_reply_quote(params, issue, settings)
+      opts = extract_options(params)
+      return '' unless opts[:quote] && opts[:reply_journal_id] > 0
+      journal = Journal.find_by(id: opts[:reply_journal_id], journalized_type: 'Issue', journalized_id: issue.id)
+      return '' unless journal
+      ReplyHelper.build_quote(journal, settings, lowercase: settings['lowercase_recipient_name'].to_s != '0')
+    rescue => e
+      Rails.logger.warn("[redmine_sendmail] build_reply_quote failed: #{e.class}: #{e.message}")
+      ''
     end
 
     # Sends a freshly created issue as an e-mail: the issue subject becomes the
@@ -80,29 +123,33 @@ module RedmineSendmail
       attachments_data = build_attachments_data(attachments)
       cleaned_body     = strip_inline_image_refs(issue.description.to_s, attachments)
       custom_subject   = params[:subject].to_s.strip.presence || issue.subject.to_s
-      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id}; SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]")
+      options          = extract_options(params)
+      Rails.logger.info("[redmine_sendmail] dispatcher: new issue ##{issue.id}; SMTP config = #{smtp_config ? smtp_config.except(:password).inspect : 'default ActionMailer'}; #{to_list.size} TO recipient(s); #{attachments_data.size} attachment(s) [#{attachments.map(&:filename).inspect}]; options=#{options.inspect}")
 
-      dispatch_recipients(
-        issue:            issue,
-        project:          project,
-        journal:          nil,
-        user:             user,
-        custom_subject:   custom_subject,
-        comment_text:     cleaned_body,
-        settings:         settings,
-        smtp_config:      smtp_config,
-        attachments_data: attachments_data,
-        to_list:          to_list,
-        cc_list:          cc_list,
-        bcc_list:         bcc_list
-      )
+      with_user_locale(user) do
+        dispatch_recipients(
+          issue:            issue,
+          project:          project,
+          journal:          nil,
+          user:             user,
+          custom_subject:   custom_subject,
+          comment_text:     cleaned_body,
+          settings:         settings,
+          smtp_config:      smtp_config,
+          attachments_data: attachments_data,
+          to_list:          to_list,
+          cc_list:          cc_list,
+          bcc_list:         bcc_list,
+          options:          options
+        )
+      end
     end
 
     # Iterates the TO list and sends one personalised mail per TO recipient;
     # each mail carries the configured CC/BCC list. If no TO recipient exists
     # (CC/BCC only), one mail is built from the first CC/BCC entry just so the
     # SMTP envelope has a `To:` header.
-    def dispatch_recipients(issue:, project:, journal:, user:, custom_subject:, comment_text:, settings:, smtp_config:, attachments_data:, to_list:, cc_list:, bcc_list:)
+    def dispatch_recipients(issue:, project:, journal:, user:, custom_subject:, comment_text:, settings:, smtp_config:, attachments_data:, to_list:, cc_list:, bcc_list:, options: {})
       records = []
       effective_to = to_list.any? ? to_list : Array(cc_list.first || bcc_list.first)
       cc_for_send  = (to_list.any? ? cc_list  : cc_list.drop(to_list.empty? && cc_list.any?  ? 1 : 0))
@@ -122,7 +169,8 @@ module RedmineSendmail
           attachments_data: attachments_data,
           comment_text:     comment_text,
           cc_recipients:    cc_for_send,
-          bcc_recipients:   bcc_for_send
+          bcc_recipients:   bcc_for_send,
+          options:          options
         )
       end
 
@@ -355,7 +403,8 @@ module RedmineSendmail
       seen.values
     end
 
-    def dispatch_one(issue:, project:, journal:, user:, recipient:, mode: 'to', custom_subject:, settings:, smtp_config:, attachments_data: [], comment_text: nil, cc_recipients: [], bcc_recipients: [])
+    def dispatch_one(issue:, project:, journal:, user:, recipient:, mode: 'to', custom_subject:, settings:, smtp_config:, attachments_data: [], comment_text: nil, cc_recipients: [], bcc_recipients: [], options: {})
+      options ||= {}
       recipient_email = recipient[:email].to_s.strip
       if recipient_email.blank?
         Rails.logger.warn("[redmine_sendmail] dispatch_one: blank recipient email — skipping")
@@ -372,17 +421,20 @@ module RedmineSendmail
         recipient_name:  recipient_name,
         custom_subject:  custom_subject,
         comment:         comment_text.presence || journal&.notes,
-        settings:        settings
+        settings:        settings,
+        options:         options
       )
       kennung = contact ? RedmineSendmailContactProjectKennung.value_for(contact, project) : ''
       vars['kunden-projekt-kennung'] = kennung
       vars['kunden_projekt_kennung'] = kennung
+      vars['quote'] = options[:quote_text].to_s
 
       subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'
       body_template    = settings['body_template'].to_s
       subject = TemplateRenderer.render(subject_template, vars).strip
       subject = "[##{issue.id}]" if subject.blank?
       body    = TemplateRenderer.render(body_template, vars)
+      body    = ReplyHelper.apply_quote(body, body_template, options[:quote_text])
 
       project_alias = resolve_project_alias(settings, project)
       from_email    = project_alias || resolve_from(settings, vars)

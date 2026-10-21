@@ -23,6 +23,70 @@
   </p>
 
   <p>
+    <label for="settings_salutation_du"><%= l(:label_sendmail_salutation_du) %></label>
+    <%= text_field_tag 'settings[salutation_du]', @settings['salutation_du'],
+                       size: 60, id: 'settings_salutation_du',
+                       placeholder: 'Hallo {recipient_name},' %>
+    <em class="info"><%= l(:label_sendmail_salutation_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_salutation_sie"><%= l(:label_sendmail_salutation_sie) %></label>
+    <%= text_field_tag 'settings[salutation_sie]', @settings['salutation_sie'],
+                       size: 60, id: 'settings_salutation_sie',
+                       placeholder: 'Guten Tag {recipient_name},' %>
+  </p>
+
+  <p>
+    <label for="settings_closing_du"><%= l(:label_sendmail_closing_du) %></label>
+    <%= text_area_tag 'settings[closing_du]', @settings['closing_du'],
+                      rows: 2, cols: 60, id: 'settings_closing_du' %>
+    <em class="info"><%= l(:label_sendmail_closing_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_closing_sie"><%= l(:label_sendmail_closing_sie) %></label>
+    <%= text_area_tag 'settings[closing_sie]', @settings['closing_sie'],
+                      rows: 2, cols: 60, id: 'settings_closing_sie' %>
+  </p>
+
+  <p>
+    <label for="settings_form_of_address_default"><%= l(:label_sendmail_form_of_address_default_setting) %></label>
+    <%= select_tag 'settings[form_of_address_default]',
+                   options_for_select([[l(:label_sendmail_form_of_address_du), 'du'],
+                                       [l(:label_sendmail_form_of_address_sie), 'sie']],
+                                      @settings['form_of_address_default'].presence || 'sie'),
+                   id: 'settings_form_of_address_default' %>
+    <em class="info"><%= l(:label_sendmail_form_of_address_default_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_lowercase_recipient_name"><%= l(:label_sendmail_lowercase_recipient_name) %></label>
+    <%= hidden_field_tag 'settings[lowercase_recipient_name]', '0' %>
+    <%= check_box_tag 'settings[lowercase_recipient_name]', '1',
+                      @settings['lowercase_recipient_name'].to_s != '0',
+                      id: 'settings_lowercase_recipient_name' %>
+    <em class="info"><%= l(:label_sendmail_lowercase_recipient_name_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_quote_header_template"><%= l(:label_sendmail_quote_header_template) %></label>
+    <%= text_field_tag 'settings[quote_header_template]', @settings['quote_header_template'],
+                       size: 60, id: 'settings_quote_header_template',
+                       placeholder: 'Am {quote_date} schrieb {quote_author}:' %>
+    <em class="info"><%= l(:label_sendmail_quote_header_template_hint) %></em>
+  </p>
+
+  <p>
+    <label for="settings_quote_default"><%= l(:label_sendmail_quote_default) %></label>
+    <%= hidden_field_tag 'settings[quote_default]', '0' %>
+    <%= check_box_tag 'settings[quote_default]', '1',
+                      @settings['quote_default'].to_s != '0',
+                      id: 'settings_quote_default' %>
+    <em class="info"><%= l(:label_sendmail_quote_default_hint) %></em>
+  </p>
+
+  <p>
     <label for="settings_from_email"><%= l(:label_sendmail_from_email) %></label>
     <%= text_field_tag 'settings[from_email]',
                        @settings['from_email'],
@@ -161,7 +225,9 @@
     <li><code>{project_name}</code>, <code>{project_identifier}</code></li>
     <li><code>{projekt-kennung}</code> &mdash; <%= l(:help_sendmail_projekt_kennung) %></li>
     <li><code>{project_info_1}</code>, <code>{project_info_2}</code> &mdash; <%= l(:help_sendmail_project_info) %></li>
-    <li><code>{recipient_name}</code>, <code>{recipient_email}</code></li>
+    <li><code>{recipient_name}</code>, <code>{recipient_firstname}</code>, <code>{recipient_lastname}</code>, <code>{recipient_email}</code> &mdash; <%= l(:help_sendmail_recipient_name) %></li>
+    <li><code>{salutation}</code>, <code>{closing}</code> &mdash; <%= l(:help_sendmail_salutation) %></li>
+    <li><code>{quote}</code> &mdash; <%= l(:help_sendmail_quote) %></li>
     <li><code>{custom_subject}</code> &mdash; <%= l(:help_sendmail_custom_subject) %></li>
     <li><code>{comment}</code> &mdash; <%= l(:help_sendmail_comment) %></li>
     <li><code>{date}</code></li>

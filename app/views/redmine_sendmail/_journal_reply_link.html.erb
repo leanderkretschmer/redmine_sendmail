@@ -1,0 +1,19 @@
+<%# "Reply by e-mail" link under a comment. All data the JS needs to
+     pre-fill the notes form (recipients, subject, quote source) travels in
+     data attributes; the click handler lives in redmine_sendmail.js. %>
+<div class="redmine-sendmail-reply"
+     data-sendmail-reply
+     data-journal-id="<%= journal.id %>"
+     data-journal-indice="<%= journal.indice %>"
+     data-reply-origin="<%= origin %>"
+     data-reply-subject="<%= h(subject) %>"
+     data-reply-contacts="<%= h(recipients[:contacts].to_json) %>"
+     data-reply-adhoc="<%= h(recipients[:adhoc].to_json) %>">
+  <a href="#" class="redmine-sendmail-reply-link icon icon-email"
+     title="<%= origin == 'email' ? l(:label_sendmail_reply_origin_email) : l(:label_sendmail_reply_origin_other) %>">
+    <%= l(:label_sendmail_reply) %>
+  </a>
+  <% if origin == 'email' %>
+    <span class="redmine-sendmail-reply-origin" title="<%= l(:label_sendmail_reply_origin_email) %>">&#9993;</span>
+  <% end %>
+</div>

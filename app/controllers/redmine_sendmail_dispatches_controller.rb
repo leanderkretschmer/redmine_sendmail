@@ -97,6 +97,8 @@ class RedmineSendmailDispatchesController < ApplicationController
 
     custom_subject = params[:subject].to_s
     body_input     = params[:body].to_s
+    options        = RedmineSendmail::Dispatcher.extract_options(sm)
+    quote_text     = issue.persisted? ? RedmineSendmail::Dispatcher.build_reply_quote(sm, issue, settings) : ''
 
     vars = RedmineSendmail::TemplateRenderer.build_vars(
       user:            user,
@@ -106,17 +108,24 @@ class RedmineSendmailDispatchesController < ApplicationController
       recipient_name:  first_recipient[:name],
       custom_subject:  custom_subject,
       comment:         body_input,
-      settings:        settings
+      settings:        settings,
+      options:         options
     )
     kennung = contact_for_vars ? RedmineSendmailContactProjectKennung.value_for(contact_for_vars, @project) : ''
     vars['kunden-projekt-kennung'] = kennung
     vars['kunden_projekt_kennung'] = kennung
+    vars['quote'] = quote_text
 
     subject_template = settings['subject_template'].presence || '[#{ticket_id}] {custom_subject}'
     body_template    = settings['body_template'].to_s
     rendered_subject = RedmineSendmail::TemplateRenderer.render(subject_template, vars).strip
     rendered_subject = "[##{issue.id}]" if rendered_subject.blank?
-    rendered_body    = RedmineSendmail::TemplateRenderer.render(body_template, vars)
+    parts            = RedmineSendmail::TemplateRenderer.render_body_parts(body_template, vars)
+    rendered_body    = RedmineSendmail::ReplyHelper.apply_quote(parts[:body], body_template, quote_text)
+    footer           = parts[:footer]
+    unless body_template.include?('{quote}') || quote_text.blank?
+      footer = "#{footer.rstrip}\n\n#{quote_text}"
+    end
 
     from_email = RedmineSendmail::Dispatcher.resolve_project_alias(settings, @project) ||
                  RedmineSendmail::Dispatcher.resolve_from(settings, vars)
@@ -132,6 +141,11 @@ class RedmineSendmailDispatchesController < ApplicationController
     render json: {
       subject:         rendered_subject,
       body:            rendered_body,
+      header:          parts[:header],
+      comment:         parts[:comment],
+      footer:          footer,
+      quote:           quote_text,
+      form_of_address: vars['form_of_address'],
       from:            from_email,
       from_name:       from_name,
       reply_to:        reply_to,

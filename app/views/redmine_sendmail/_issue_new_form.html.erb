@@ -18,7 +18,13 @@
      data-sendmail-label-close="<%= l(:button_close) %>"
      data-sendmail-label-sending="<%= l(:label_sendmail_preview_sending) %>"
      data-sendmail-label-attachments="<%= l(:label_sendmail_attachments) %>"
-     data-sendmail-label-multi="<%= l(:label_sendmail_preview_multi_note) %>">
+     data-sendmail-label-multi="<%= l(:label_sendmail_preview_multi_note) %>"
+     data-sendmail-label-header="<%= l(:label_sendmail_preview_header) %>"
+     data-sendmail-label-footer="<%= l(:label_sendmail_preview_footer) %>"
+     data-sendmail-label-quote="<%= l(:label_sendmail_preview_quote) %>"
+     data-sendmail-label-comment="<%= l(:label_sendmail_preview_comment) %>"
+     data-sendmail-label-reply-target="<%= l(:label_sendmail_reply_target) %>"
+     data-sendmail-quote-default="<%= options[:quote_default] ? '1' : '0' %>">
   <fieldset class="collapsible">
     <legend><%= l(:label_sendmail_send_new_issue) %></legend>
     <div class="redmine-sendmail-fields">
@@ -36,6 +42,8 @@
                            data: { 'sendmail-subject' => true } %>
         <em class="info"><%= l(:label_sendmail_new_subject_hint) %></em>
       </p>
+      <%= render partial: 'redmine_sendmail/mail_options',
+                 locals: { options: options, prefix: 'new', with_quote: false } %>
       <p class="redmine-sendmail-hint" data-sendmail-hint style="display:none;">
         <em><%= l(:label_sendmail_will_send_new_issue_hint) %></em>
       </p>

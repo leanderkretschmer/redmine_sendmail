@@ -5,6 +5,7 @@ Rails.application.config.to_prepare do
   require_dependency File.expand_path('lib/redmine_sendmail/controller_hook', __dir__)
   require_dependency File.expand_path('lib/redmine_sendmail/projects_helper_patch', __dir__)
   require_dependency File.expand_path('lib/redmine_sendmail/journal_patch', __dir__)
+  require_dependency File.expand_path('lib/redmine_sendmail/user_preference_patch', __dir__)
   require_dependency File.expand_path('app/jobs/redmine_sendmail_dispatch_job', __dir__)
 end
 
@@ -21,7 +22,15 @@ Redmine::Plugin.register :redmine_sendmail do
   settings(
     default: {
       'subject_template' => '[#{ticket_id}] {custom_subject}',
-      'body_template' => "Hallo {recipient_name},\n\n{comment}\n\n--\n{user_name}\n{user_email}\n\n(Ticket: {ticket_url})\n",
+      'body_template' => "{salutation}\n\n{comment}\n\n{closing}\n\n--\n{user_email}\n(Ticket: {ticket_url})\n",
+      'salutation_du' => 'Hallo {recipient_name},',
+      'salutation_sie' => 'Guten Tag {recipient_name},',
+      'closing_du' => "Beste Grüße\n{user_name}",
+      'closing_sie' => "Mit freundlichen Grüßen\n{user_name}",
+      'form_of_address_default' => 'sie',
+      'lowercase_recipient_name' => '1',
+      'quote_header_template' => 'Am {quote_date} schrieb {quote_author}:',
+      'quote_default' => '1',
       'from_email' => '',
       'from_name' => '',
       'reply_to_email' => '',

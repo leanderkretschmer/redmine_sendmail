@@ -90,13 +90,234 @@
     var has = hasAnyRecipient(form);
     var subjectRow = form.querySelector('[data-sendmail-subject-row]');
     var subjectInput = form.querySelector('[data-sendmail-subject]');
+    var optionsRow = form.querySelector('[data-sendmail-options-row]');
     var hint = form.querySelector('[data-sendmail-hint]');
     if (subjectRow) { subjectRow.style.display = has ? '' : 'none'; }
+    if (optionsRow) { optionsRow.style.display = has ? '' : 'none'; }
     if (hint) { hint.style.display = has ? '' : 'none'; }
     if (subjectInput) {
       if (!has) { subjectInput.value = ''; }
     }
     updateSaveButtonLabel(form, has);
+    scheduleLivePreview(form);
+  }
+
+  // ---- per-mail options (form of address, first name only, quote) --------
+
+  function getOptionState(form) {
+    var foaEl = form.querySelector('[data-sendmail-option="form_of_address"]:checked');
+    var fnoEl = form.querySelector('[data-sendmail-option="first_name_only"]');
+    var quoteEl = form.querySelector('[data-sendmail-option="quote"]');
+    var replyEl = form.querySelector('[data-sendmail-reply-journal-id]');
+    var replyId = replyEl ? replyEl.value.trim() : '';
+    return {
+      formOfAddress:  foaEl ? foaEl.value : '',
+      firstNameOnly:  !!(fnoEl && fnoEl.checked),
+      quote:          !!(quoteEl && quoteEl.checked && replyId),
+      replyJournalId: replyId
+    };
+  }
+
+  function wireOptions(form) {
+    var opts = form.querySelectorAll('[data-sendmail-option]');
+    for (var i = 0; i < opts.length; i++) {
+      opts[i].addEventListener('change', function () { scheduleLivePreview(form); });
+    }
+    var clear = form.querySelector('[data-sendmail-reply-clear]');
+    if (clear) {
+      clear.addEventListener('click', function (e) {
+        e.preventDefault();
+        clearReplyReference(form);
+      });
+    }
+  }
+
+  function setReplyReference(form, journalId, indice, labels) {
+    var replyEl = form.querySelector('[data-sendmail-reply-journal-id]');
+    var row = form.querySelector('[data-sendmail-quote-row]');
+    var target = form.querySelector('[data-sendmail-reply-target]');
+    var quoteEl = form.querySelector('[data-sendmail-option="quote"]');
+    if (replyEl) { replyEl.value = journalId; }
+    if (target) { target.textContent = labels.replyTarget.replace('%{indice}', indice); }
+    if (quoteEl) { quoteEl.checked = (form.getAttribute('data-sendmail-quote-default') || '1') === '1'; }
+    if (row) { row.style.display = ''; }
+  }
+
+  function clearReplyReference(form) {
+    var replyEl = form.querySelector('[data-sendmail-reply-journal-id]');
+    var row = form.querySelector('[data-sendmail-quote-row]');
+    if (replyEl) { replyEl.value = ''; }
+    if (row) { row.style.display = 'none'; }
+    scheduleLivePreview(form);
+  }
+
+  // ---- live header / footer around the comment textarea ------------------
+  //
+  // Shows the automatically added greeting (header) above and the closing /
+  // signature / quoted comment (footer) below the textarea — like a mail
+  // client — so nobody types "hallo fritz" twice.
+
+  function findBodyTextarea() {
+    var hostForm = findIssueForm();
+    if (!hostForm) { return null; }
+    return hostForm.querySelector('textarea[name="issue[notes]"]') ||
+           hostForm.querySelector('textarea[name="issue[description]"]');
+  }
+
+  function ensureLiveBlocks(form) {
+    var ta = findBodyTextarea();
+    if (!ta) { return null; }
+    var hostForm = findIssueForm();
+    var header = hostForm.querySelector('[data-sendmail-live-header]');
+    var footer = hostForm.querySelector('[data-sendmail-live-footer]');
+    if (header && footer) { return { header: header, footer: footer }; }
+    var block = (ta.closest && ta.closest('.jstBlock')) || ta;
+    var parent = block.parentNode;
+    if (!parent) { return null; }
+    if (!header) {
+      header = document.createElement('pre');
+      header.className = 'redmine-sendmail-live redmine-sendmail-live-header';
+      header.setAttribute('data-sendmail-live-header', '');
+      header.style.display = 'none';
+      parent.insertBefore(header, block);
+    }
+    if (!footer) {
+      footer = document.createElement('pre');
+      footer.className = 'redmine-sendmail-live redmine-sendmail-live-footer';
+      footer.setAttribute('data-sendmail-live-footer', '');
+      footer.style.display = 'none';
+      if (block.nextSibling) { parent.insertBefore(footer, block.nextSibling); } else { parent.appendChild(footer); }
+    }
+    return { header: header, footer: footer };
+  }
+
+  var livePreviewTimer = null;
+  var livePreviewSeq = 0;
+
+  function scheduleLivePreview(form) {
+    if (livePreviewTimer) { clearTimeout(livePreviewTimer); }
+    livePreviewTimer = setTimeout(function () { refreshLivePreview(form); }, 350);
+  }
+
+  function refreshLivePreview(form) {
+    var blocks = ensureLiveBlocks(form);
+    if (!blocks) { return; }
+    if (!hasAnyRecipient(form)) {
+      blocks.header.style.display = 'none';
+      blocks.footer.style.display = 'none';
+      return;
+    }
+    var state = gatherFormState(form);
+    state.body = '';
+    state.attachments = [];
+    var seq = ++livePreviewSeq;
+    requestPreview(form, state).then(function (data) {
+      if (seq !== livePreviewSeq) { return; }
+      var header = (data.header || '').replace(/\s+$/, '');
+      var footer = (data.footer || '').replace(/^\s+/, '');
+      blocks.header.textContent = header;
+      blocks.footer.textContent = footer;
+      blocks.header.style.display = header ? '' : 'none';
+      blocks.footer.style.display = footer ? '' : 'none';
+    }).catch(function () {
+      blocks.header.style.display = 'none';
+      blocks.footer.style.display = 'none';
+    });
+  }
+
+  // ---- "reply by e-mail" links under the comments -------------------------
+
+  function parseJsonAttr(el, name) {
+    try { return JSON.parse(el.getAttribute(name) || '[]') || []; } catch (e) { return []; }
+  }
+
+  function clearRecipientSelection(form) {
+    var checkboxes = form.querySelectorAll('[data-sendmail-recipient]');
+    for (var i = 0; i < checkboxes.length; i++) { checkboxes[i].checked = false; }
+    var btns = form.querySelectorAll('[data-sendmail-mode-btn]');
+    for (var j = 0; j < btns.length; j++) {
+      btns[j].classList.remove('active');
+      btns[j].setAttribute('aria-pressed', 'false');
+    }
+    var rows = form.querySelectorAll('[data-sendmail-adhoc-row]');
+    for (var k = 0; k < rows.length; k++) { rows[k].parentNode.removeChild(rows[k]); }
+  }
+
+  function selectContact(form, id, mode) {
+    var btn = form.querySelector('[data-sendmail-mode-btn="' + id + '"][data-mode="' + (mode || 'to') + '"]');
+    if (!btn) { return false; }
+    if (!btn.classList.contains('active')) { btn.click(); }
+    return true;
+  }
+
+  function addAdhocRecipient(form, entry) {
+    var addBtn = form.querySelector('[data-sendmail-adhoc-add]');
+    var rowsContainer = form.querySelector('[data-sendmail-adhoc-rows]');
+    if (!addBtn || !rowsContainer) { return; }
+    addBtn.click();
+    var rows = rowsContainer.querySelectorAll('[data-sendmail-adhoc-row]');
+    var row = rows[rows.length - 1];
+    if (!row) { return; }
+    var emailEl = row.querySelector('.redmine-sendmail-adhoc-email');
+    var nameEl  = row.querySelector('.redmine-sendmail-adhoc-name');
+    var modeEl  = row.querySelector('.redmine-sendmail-adhoc-mode');
+    if (emailEl) { emailEl.value = entry.email || ''; }
+    if (nameEl)  { nameEl.value  = entry.name  || ''; }
+    if (modeEl)  { modeEl.value  = entry.mode  || 'to'; }
+  }
+
+  function handleReplyClick(replyEl) {
+    var hostForm = findIssueForm();
+    var form = hostForm ? hostForm.querySelector('[data-sendmail-form]') : null;
+    if (!hostForm || !form) { return; }
+    var labels = getLabels(form);
+
+    // Reveal Redmine's (initially hidden) update form.
+    var update = document.getElementById('update');
+    if (update) { update.style.display = ''; }
+
+    clearRecipientSelection(form);
+    parseJsonAttr(replyEl, 'data-reply-contacts').forEach(function (c) {
+      selectContact(form, String(c.id), c.mode);
+    });
+    parseJsonAttr(replyEl, 'data-reply-adhoc').forEach(function (a) {
+      if (a && a.email) { addAdhocRecipient(form, a); }
+    });
+
+    var subjectInput = form.querySelector('[data-sendmail-subject]');
+    if (subjectInput) { subjectInput.value = replyEl.getAttribute('data-reply-subject') || ''; }
+
+    setReplyReference(form,
+                      replyEl.getAttribute('data-journal-id') || '',
+                      replyEl.getAttribute('data-journal-indice') || '',
+                      labels);
+    updateAfterChange(form);
+
+    var ta = findBodyTextarea();
+    var fieldset = form.querySelector('fieldset');
+    if (fieldset && fieldset.classList.contains('collapsed')) {
+      var legend = fieldset.querySelector('legend');
+      if (legend) { legend.click(); }
+    }
+    if (ta) {
+      ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      ta.focus({ preventScroll: true });
+    } else {
+      form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }
+
+  function wireReplyLinks() {
+    var replies = document.querySelectorAll('[data-sendmail-reply]');
+    for (var i = 0; i < replies.length; i++) {
+      if (replies[i].dataset.sendmailReplyWired === '1') { continue; }
+      replies[i].dataset.sendmailReplyWired = '1';
+      var link = replies[i].querySelector('.redmine-sendmail-reply-link');
+      if (!link) { continue; }
+      link.addEventListener('click', (function (el) {
+        return function (e) { e.preventDefault(); handleReplyClick(el); };
+      })(replies[i]));
+    }
   }
 
   function hasAnyRecipient(form) {
@@ -135,6 +356,7 @@
 
     var subjectInput = form.querySelector('[data-sendmail-subject]');
     var subject = subjectInput ? subjectInput.value : '';
+    var options = getOptionState(form);
 
     var hostForm = findIssueForm();
     var bodyValue = '';
@@ -163,7 +385,8 @@
       subject:       subject,
       body:          bodyValue,
       ticketSubject: ticketSubject,
-      attachments:   attachments
+      attachments:   attachments,
+      options:       options
     };
   }
 
@@ -183,7 +406,7 @@
       '      <div class="redmine-sendmail-preview-subject-row">' +
       '        <strong></strong> <span class="redmine-sendmail-preview-subject"></span>' +
       '      </div>' +
-      '      <pre class="redmine-sendmail-preview-body"></pre>' +
+      '      <div class="redmine-sendmail-preview-body"></div>' +
       '      <div class="redmine-sendmail-preview-attachments-row" style="display:none;">' +
       '        <strong></strong>' +
       '        <span class="redmine-sendmail-preview-attachments"></span>' +
@@ -202,6 +425,42 @@
     var modal = div.firstChild;
     document.body.appendChild(modal);
     return modal;
+  }
+
+  // Renders the mail text as header / comment / footer / quote sections so
+  // the automatically added parts are distinguishable from the typed comment.
+  function renderPreviewBody(container, data, labels) {
+    container.innerHTML = '';
+    if (data.header === undefined && data.footer === undefined) {
+      var pre = document.createElement('pre');
+      pre.className = 'redmine-sendmail-preview-part-text';
+      pre.textContent = data.body || '';
+      container.appendChild(pre);
+      return;
+    }
+    function part(kind, label, text) {
+      if (text == null || String(text).replace(/\s+/g, '') === '') { return; }
+      var box = document.createElement('div');
+      box.className = 'redmine-sendmail-preview-part redmine-sendmail-preview-part-' + kind;
+      var head = document.createElement('div');
+      head.className = 'redmine-sendmail-preview-part-label';
+      head.textContent = label;
+      var pre = document.createElement('pre');
+      pre.className = 'redmine-sendmail-preview-part-text';
+      pre.textContent = String(text).replace(/^\n+|\n+$/g, '');
+      box.appendChild(head);
+      box.appendChild(pre);
+      container.appendChild(box);
+    }
+    var footer = data.footer || '';
+    var quote = data.quote || '';
+    if (quote && footer.indexOf(quote) !== -1) {
+      footer = footer.replace(quote, '');
+    }
+    part('header',  labels.header,  data.header);
+    part('comment', labels.comment, data.comment);
+    part('footer',  labels.footer,  footer);
+    part('quote',   labels.quote,   quote);
   }
 
   function renderRecipientGroup(parent, label, list) {
@@ -280,7 +539,7 @@
     }
     s2.querySelector('.redmine-sendmail-preview-subject-row strong').textContent = labels.subject + ':';
     s2.querySelector('.redmine-sendmail-preview-subject').textContent = data.subject;
-    s2.querySelector('.redmine-sendmail-preview-body').textContent = data.body;
+    renderPreviewBody(s2.querySelector('.redmine-sendmail-preview-body'), data, labels);
 
     // Attachment list — pull the row placeholder we injected in buildModal(),
     // hide it entirely when nothing is attached, otherwise fill with chip
@@ -406,7 +665,12 @@
       close:          form.getAttribute('data-sendmail-label-close')           || 'Close',
       sending:        form.getAttribute('data-sendmail-label-sending')         || 'Wird gesendet…',
       attachments:    form.getAttribute('data-sendmail-label-attachments')     || 'Anhänge',
-      multiRecipient: form.getAttribute('data-sendmail-label-multi')           || '%{count} recipients — preview shows the first.'
+      multiRecipient: form.getAttribute('data-sendmail-label-multi')           || '%{count} recipients — preview shows the first.',
+      header:         form.getAttribute('data-sendmail-label-header')          || 'Header',
+      footer:         form.getAttribute('data-sendmail-label-footer')          || 'Footer',
+      quote:          form.getAttribute('data-sendmail-label-quote')           || 'Quoted comment',
+      comment:        form.getAttribute('data-sendmail-label-comment')         || 'Comment',
+      replyTarget:    form.getAttribute('data-sendmail-label-reply-target')    || 'comment #%{indice}'
     };
   }
 
@@ -426,6 +690,11 @@
     (state.attachments || []).forEach(function (name) {
       fd.append('attachments[]', name);
     });
+    var o = state.options || {};
+    if (o.formOfAddress) { fd.append('sendmail[form_of_address]', o.formOfAddress); }
+    fd.append('sendmail[first_name_only]', o.firstNameOnly ? '1' : '0');
+    fd.append('sendmail[quote]', o.quote ? '1' : '0');
+    fd.append('sendmail[reply_journal_id]', o.replyJournalId || '');
     fd.append('sendmail[subject]', state.subject || '');
     fd.append('subject', state.subject || '');
     fd.append('body', state.body || '');
@@ -486,6 +755,7 @@
     wireModeButtons(form);
     wireSearch(form);
     wireAdhoc(form);
+    wireOptions(form);
     wirePreview(form);
     updateAfterChange(form);
   }
@@ -551,6 +821,7 @@
   function init() {
     initRecipientForm();
     highlightSentJournals();
+    wireReplyLinks();
   }
 
   if (document.readyState === 'loading') {

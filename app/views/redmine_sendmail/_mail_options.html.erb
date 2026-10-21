@@ -1,0 +1,41 @@
+<%# Per-mail options shared by the notes and the new-issue form:
+     form of address (Du/Sie), first-name-only greeting and — only when
+     replying to a comment — quoting of that comment. %>
+<p class="redmine-sendmail-options" data-sendmail-options-row style="display:none;">
+  <label><%= l(:label_sendmail_form_of_address) %></label>
+  <span class="redmine-sendmail-option-group">
+    <% %w[du sie].each do |foa| %>
+      <label class="redmine-sendmail-option-inline">
+        <%= radio_button_tag 'sendmail[form_of_address]', foa,
+                             options[:form_of_address] == foa,
+                             id: "sendmail_form_of_address_#{foa}_#{prefix}",
+                             data: { 'sendmail-option' => 'form_of_address' } %>
+        <%= l(:"label_sendmail_form_of_address_#{foa}") %>
+      </label>
+    <% end %>
+    <label class="redmine-sendmail-option-inline">
+      <%= check_box_tag 'sendmail[first_name_only]', '1', false,
+                        id: "sendmail_first_name_only_#{prefix}",
+                        data: { 'sendmail-option' => 'first_name_only' } %>
+      <%= l(:label_sendmail_first_name_only) %>
+    </label>
+  </span>
+</p>
+<% if with_quote %>
+  <%= hidden_field_tag 'sendmail[reply_journal_id]', '',
+                       id: "sendmail_reply_journal_id_#{prefix}",
+                       data: { 'sendmail-reply-journal-id' => true } %>
+  <p class="redmine-sendmail-quote-row" data-sendmail-quote-row style="display:none;">
+    <label><%= l(:label_sendmail_reply_to_comment) %></label>
+    <span class="redmine-sendmail-option-group">
+      <span class="redmine-sendmail-reply-target" data-sendmail-reply-target></span>
+      <label class="redmine-sendmail-option-inline">
+        <%= check_box_tag 'sendmail[quote]', '1', options[:quote_default],
+                          id: "sendmail_quote_#{prefix}",
+                          data: { 'sendmail-option' => 'quote' } %>
+        <%= l(:label_sendmail_quote_comment) %>
+      </label>
+      <a href="#" class="redmine-sendmail-reply-clear" data-sendmail-reply-clear><%= l(:label_sendmail_reply_clear) %></a>
+    </span>
+  </p>
+<% end %>
